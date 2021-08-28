@@ -162,6 +162,27 @@ func TestDigitNotIn(t *testing.T) {
 	}
 }
 
+func TestDelNode(t *testing.T) {
+	input := ".341528699.837645252.948371245.136986895.413737168.524857231.464938672.516249578."
+
+	mat = populateMat(input)
+	emptyCnt = countEmpty(mat)
+
+	emptyL, mat2 = getPossibleMat(mat)
+
+	currentNode := emptyL.head
+
+	// Fill in digit 7 in [1,1]
+	mat[1][1] = 7
+	mat2[1][1] = nil
+
+	emptyL.delNode(currentNode)
+
+	if emptyL.countNodes() != 8 {
+		t.Fatalf("Empty list count should be 8 but got %d.\n", emptyL.countNodes())
+	}
+}
+
 func TestRule1(t *testing.T) {
 
 	input := ".341528699.837645252.948371245.136986895.413737168.524857231.464938672.516249578."
@@ -199,15 +220,61 @@ func TestRule3(t *testing.T) {
 
 	emptyL, mat2 = getPossibleMat(mat)
 
+	for {
+		matched, cnt := rule3()
+
+		digcnt := matched.countNodes()
+
+		printPossibleMat()
+		color.LightMagenta.Printf("Found: %d digits.\n", cnt)
+		if digcnt != cnt {
+			t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
+		}
+
+		matched.printResult("Found hidden single")
+
+		if cnt <= 0 {
+			break
+		}
+	}
+}
+
+func TestRule_3a(t *testing.T) {
+
+	input := "7..15..6991.37645.5.694.371..5.1.69.6.95.41.7.716.95...57.319.6.9386..1516..95..."
+
+	mat = populateMat(input)
+
+	emptyCnt = countEmpty(mat)
+	if emptyCnt != 31 {
+		t.Fatalf("Expected 31 but got %d.\n", emptyCnt)
+	}
+
+	emptyL, mat2 = getPossibleMat(mat)
+	if emptyL.countNodes() != 31 {
+		t.Fatalf("Expected 31 nodes in empty list but got %d.\n", emptyL.countNodes())
+	}
+
+	printPossibleMat()
+	printSudoku(mat)
+
 	matched, cnt := rule3()
 
 	digcnt := matched.countNodes()
 
 	printPossibleMat()
+
 	color.LightMagenta.Printf("Found: %d digits.\n", cnt)
 	if digcnt != cnt {
 		t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
 	}
 
 	matched.printResult("Found hidden single")
+	printSudoku(mat)
+
+	if emptyCnt == 0 {
+		color.Magenta.Println("Finished!")
+	} else {
+		fmt.Printf("Empty cells = %d\n", emptyCnt)
+	}
 }

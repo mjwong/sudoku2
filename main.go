@@ -28,11 +28,13 @@ type cell struct {
 	row  int
 	col  int
 	vals []int
+	prev *cell
 	next *cell
 }
 
 type linkedList struct {
 	head        *cell
+	last        *cell
 	currentCell *cell
 }
 
@@ -47,6 +49,7 @@ var (
 	elapsed  time.Duration
 	debugPtr *bool = flag.Bool("debug", false, "verbose debug mode")
 	prtLLPtr *bool = flag.Bool("prtLL", false, "print the linked list of empty cells")
+	rule     *int  = flag.Int("r", 0, "The deffault is 0, which will iterate matrix using linked list.")
 )
 
 func main() {
@@ -58,23 +61,58 @@ func main() {
 	start := time.Now()
 	printSudoku(mat)
 	emptyL, mat2 = getPossibleMat(mat)
+	fmt.Println("Starting possibility matrix.")
 	printPossibleMat()
 
 	if *prtLLPtr {
 		emptyL.showAllEmptyCells()
 	}
 
-	rule1()
-	rule3()
+	switch *rule {
+	case 0:
+		mat3 = mat
+		iterMat(*emptyL.head)
+	case 1:
+		matched, cnt := rule1()
+		fmt.Printf("Rule1. Found %d digits.\n", cnt)
+		matched.printResult("Found open single")
+	case 3:
+		matched, cnt := rule3()
+		fmt.Printf("Rule3. Found %d digits.\n", cnt)
+		matched.printResult("Found hidden single")
+	case 13:
+		rule1cnt := 0
+		rule2cnt := 0
 
-	// do iterations
-	mat3 = mat
-	iterMat(*emptyL.head)
+		for {
+			_, cnt1 := rule1()
+			fmt.Printf("After rule1, found %2d. Empty list count = %2d.\n", cnt1, emptyL.countNodes())
+
+			_, cnt2 := rule3()
+			fmt.Printf("After rule3, found %2d. Empty list count = %2d.\n", cnt2, emptyL.countNodes())
+
+			if cnt2 <= 0 {
+				break
+			}
+			rule1cnt += cnt1
+			rule2cnt += cnt2
+		}
+
+		// do iterations
+		mat3 = mat
+		if emptyL.countNodes() > 0 {
+			iterMat(*emptyL.head)
+		} else {
+			printSudoku(mat)
+			fmt.Printf("Rule 1: Found %2d digits\n", rule1cnt)
+			fmt.Printf("Rule 2: Found %2d digits\n", rule2cnt)
+		}
+	}
 
 	//color.LightMagenta.Println(*emptyL)
 	checkSums(mat3)
 	elapsed := time.Since(start)
-	log.Printf("Iterations: %d. Empty cells: %d. Sudoku took %v sec\n", iterCnt, countEmpty(mat), elapsed.Seconds())
+	log.Printf("IterMat: Iterations: %d. Empty cells: %d. Sudoku took %v sec\n", iterCnt, countEmpty(mat), elapsed.Seconds())
 }
 
 func createlinkedList() *linkedList {
@@ -90,12 +128,15 @@ func (p *linkedList) addCell(row, col int, arr []int) error {
 
 	if p.head == nil {
 		p.head = c
+		c.prev = nil
 	} else {
 		currentCell := p.head
 		for currentCell.next != nil {
 			currentCell = currentCell.next
 		}
 		currentCell.next = c
+		c.prev = currentCell
+		p.last = c
 	}
 	return nil
 }
@@ -124,6 +165,31 @@ func (p *linkedList) countNodes() int {
 	return count
 }
 
+func (p *linkedList) addNode(node *cell) error {
+
+	if p.head == nil {
+		p.head = node
+		node.prev = nil
+	} else {
+		currentCell := p.head
+		for currentCell.next != nil {
+			currentCell = currentCell.next
+		}
+		currentCell.next = node
+		node.prev = currentCell
+		p.last = node
+	}
+	return nil
+}
+
+func (p *linkedList) lastNode() *cell {
+	currentCell := p.head
+	for currentCell.next != nil {
+		currentCell = currentCell.next
+	}
+	return currentCell
+}
+
 func (p *linkedList) getNodeForCell(row, col int) *cell {
 
 	currN := p.head
@@ -149,6 +215,37 @@ func (p *linkedList) printResult(desc string) {
 		currNode = currNode.next
 	}
 }
+
+// remove current node from linked list and connect prev and next nodes
+func (p *linkedList) delNode(node *cell) {
+
+	if node == nil {
+		color.Yellow.Println("Possibility list is empty or has reached the end.")
+		return
+	}
+
+	if node == p.head {
+		p.head = node.next
+	} else {
+		if node != nil {
+			if node.next != nil {
+				node.prev.next = node.next
+				node.next.prev = node.prev
+			} else {
+				node.prev.next = nil
+			}
+
+			if *debugPtr {
+				fmt.Printf("Before. Prev: %v. Curr: %v. Next: %v\n", color.Yellow.Render(node.prev),
+					color.Yellow.Render(node), color.Yellow.Render(node.next))
+				fmt.Printf("After. Prev: %v. Next: %v\n", color.Yellow.Render(node.prev),
+					color.Yellow.Render(node.prev.next))
+			}
+		}
+	}
+}
+
+// ****************************************** end of linkedList ******************************************
 
 func getPossibleMat(mat intmat) (*linkedList, pmat) {
 	const (
@@ -574,6 +671,10 @@ func findDigitInBlk(mat2 pmat, row, col, dig int) bool {
 	return false
 }
 
+// *******************************************************************************************************
+// *                                          end of find funcs                                          *
+// *******************************************************************************************************
+
 // erase digit from row of possibility matrix
 func eraseDigitFromRow(row, col, dig int) bool {
 	const ncols = 9
@@ -660,28 +761,20 @@ func getColOfPossibleMat(mat2 pmat, col int) [][]int {
 	return m
 }
 
-// remove current node from linked list and connect prev and next nodes
-func (p *linkedList) delCurrentNode(prevNode, currNode *cell) {
+func getBlkOfPossibleMat(mat2 pmat, row, col int) [][]int {
+	const scols = 3
+	var m [][]int
 
-	if currNode == nil {
-		color.Yellow.Println("Possibility list is empty or has reached the end.")
-		return
-	}
+	startRow := row / scols * scols
+	startCol := col / scols * scols
 
-	if currNode == p.head {
-		p.head = currNode.next
-	} else {
-		if currNode != nil && currNode.next != nil {
-			prevNode.next = currNode.next
-
-			if *debugPtr {
-				fmt.Printf("Before. Prev: %v. Curr: %v. Next: %v\n", color.Yellow.Render(prevNode),
-					color.Yellow.Render(currNode), color.Yellow.Render(currNode.next))
-				fmt.Printf("After. Prev: %v. Next: %v\n", color.Yellow.Render(prevNode),
-					color.Yellow.Render(prevNode.next))
-			}
+	for x := startRow; x < startRow+scols; x++ {
+		for y := startCol; y < startCol+scols; y++ {
+			m = append(m, mat2[x][y])
 		}
 	}
+
+	return m
 }
 
 // Rule 1 - Open cell - 1 cell empty either in column, row or block.
@@ -709,6 +802,7 @@ func rule1() (*linkedList, int) {
 			if len(currNode.vals) == 1 {
 				digit = currNode.vals[0]
 				matched.addCell(row, col, []int{digit})
+				emptyL.delNode(currNode) // remove current Node from possibility list
 				mat[row][col] = digit
 				mat2[row][col] = nil
 				emptyCnt--
@@ -737,7 +831,7 @@ func rule1() (*linkedList, int) {
 }
 */
 
-// Rule 6	Hidden singles
+// Rule 3	Hidden singles
 //          A digit that is the only one in an entire row, column, or block.
 //          Fill in this digiti and erase any other occurrence of this digit in the same row, column or block.
 func rule3() (*linkedList, int) {
@@ -751,7 +845,6 @@ func rule3() (*linkedList, int) {
 		count, itercnt               int
 		notInRow, notInCol, notInBlk bool
 		foundHiddenSingle            bool
-		prev                         *cell
 		matched                      *linkedList
 	)
 	matched = &linkedList{}
@@ -793,9 +886,9 @@ func rule3() (*linkedList, int) {
 
 						if notInRow || notInCol || notInBlk {
 							matched.addCell(row, col, []int{dig})
-							emptyL.delCurrentNode(prev, currNode) // remove current Node from possibility list
-							mat[row][col] = dig                   // fill in dig in resulting mat
-							mat2[row][col] = nil                  // blank this cell out in possibility mat
+							emptyL.delNode(currNode) // remove current Node from possibility list
+							mat[row][col] = dig      // fill in dig in resulting mat
+							mat2[row][col] = nil     // blank this cell out in possibility mat
 							emptyCnt--
 							count++
 							foundHiddenSingle = true
@@ -823,7 +916,7 @@ func rule3() (*linkedList, int) {
 								eraseDigitFromBlk(row, col, dig)
 
 								if *debugPtr {
-									color.LightBlue.Printf("After deletion from blk [%d,%d]: %v\n", row/scols, col/scols, mat2[row])
+									color.LightBlue.Printf("After deletion from blk [%d,%d]: %v\n", row/scols, col/scols, getBlkOfPossibleMat(mat2, row, col))
 								}
 							}
 							if notInRow && notInCol && notInBlk {
@@ -834,7 +927,13 @@ func rule3() (*linkedList, int) {
 						}
 					}
 
-					prev = currNode
+					if emptyCnt <= 0 {
+						if *debugPtr {
+							fmt.Printf("Empty list count = %d\n", emptyL.countNodes())
+						}
+						break
+					}
+
 					currNode = currNode.next
 				}
 			}
