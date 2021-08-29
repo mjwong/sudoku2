@@ -73,40 +73,70 @@ func main() {
 		mat3 = mat
 		iterMat(*emptyL.head)
 	case 1:
-		matched, cnt := rule1()
-		fmt.Printf("Rule1. Found %d digits.\n", cnt)
-		matched.printResult("Found open single")
+		totalcnt := 0
+		for {
+			matched, cnt := rule1()
+			fmt.Printf("Rule1. Found %d digits.\n", cnt)
+			matched.printResult("Found open single")
+			printSudoku(mat)
+			if cnt <= 0 {
+				break
+			}
+			totalcnt += cnt
+		}
+		fmt.Printf("Total found = %d.\n", totalcnt)
 	case 3:
-		matched, cnt := rule3()
-		fmt.Printf("Rule3. Found %d digits.\n", cnt)
-		matched.printResult("Found hidden single")
+		totalcnt := 0
+		for {
+			matched, cnt := rule3()
+			fmt.Printf("Rule3. Found %d digits.\n", cnt)
+			matched.printResult("Found hidden single")
+			printSudoku(mat)
+			if cnt <= 0 {
+				break
+			}
+			totalcnt += cnt
+		}
+		fmt.Printf("Total found = %d.\n", totalcnt)
 	case 13:
 		rule1cnt := 0
 		rule2cnt := 0
 
 		for {
-			_, cnt1 := rule1()
+			matched1, cnt1 := rule1()
 			fmt.Printf("After rule1, found %2d. Empty list count = %2d.\n", cnt1, emptyL.countNodes())
+			matched1.printResult("Found open single")
 
-			_, cnt2 := rule3()
+			matched2, cnt2 := rule3()
 			fmt.Printf("After rule3, found %2d. Empty list count = %2d.\n", cnt2, emptyL.countNodes())
+			matched2.printResult("Found hidden single")
 
-			if cnt2 <= 0 {
+			if cnt1 <= 0 && cnt2 <= 0 {
 				break
 			}
 			rule1cnt += cnt1
 			rule2cnt += cnt2
 		}
 
+		fmt.Println("After rules 1 & 3 have completed.")
+		node := emptyL.head
+		for node != nil {
+			fmt.Printf("[%d,%d] : %v \n", node.row, node.row, node.vals)
+			node = node.next
+		}
+
 		// do iterations
 		mat3 = mat
 		if emptyL.countNodes() > 0 {
+			fmt.Printf("Empty list count = %d.\n", emptyL.countNodes())
+			printPossibleMat()
 			iterMat(*emptyL.head)
-		} else {
-			printSudoku(mat)
-			fmt.Printf("Rule 1: Found %2d digits\n", rule1cnt)
-			fmt.Printf("Rule 2: Found %2d digits\n", rule2cnt)
 		}
+
+		printSudoku(mat)
+		fmt.Printf("Rule 1: Found %2d digits\n", rule1cnt)
+		fmt.Printf("Rule 3: Found %2d digits\n", rule2cnt)
+
 	}
 
 	//color.LightMagenta.Println(*emptyL)
@@ -782,9 +812,10 @@ func getBlkOfPossibleMat(mat2 pmat, row, col int) [][]int {
 // Empty cells contain lists. Non-empty cells contain nil.
 func rule1() (*linkedList, int) {
 	var (
-		col, row     int // position of last empty cell
-		digit, count int
-		matched      *linkedList
+		col, row                     int // position of last empty cell
+		digit, count                 int
+		notInRow, notInCol, notInBlk bool
+		matched                      *linkedList
 	)
 	matched = &linkedList{}
 
@@ -808,7 +839,56 @@ func rule1() (*linkedList, int) {
 				emptyCnt--
 				count++
 				if *debugPtr {
-					color.LightGreen.Printf("Rule 1. Found lone single no. %d at cell [%d][%d]. Empty cells = %d\n", mat[row][col], row, col, emptyCnt)
+					color.LightYellow.Printf("Rule 1. Found lone single no. %d at cell [%d][%d]. Empty cells = %d\n", mat[row][col], row, col, emptyCnt)
+				}
+
+				// check that there is no occurrence in same row, col or block
+				// If found, remove any occurrences of this digit in same row, column or block.
+				// Update mat to include this digit. Remove this node from empty list.
+				// Nil the array in cell of possibility matrix and set the cell to nil in mat2.
+				notInRow = !findDigitInRow(mat2, row, col, digit)
+				notInCol = !findDigitInCol(mat2, row, col, digit)
+				notInBlk = !findDigitInBlk(mat2, row, col, digit)
+
+				if *debugPtr {
+					if notInRow {
+						color.LightBlue.Printf("Digit %d of cell [%d][%d] not in row %d\n", digit, row, col, row)
+					}
+					if notInCol {
+						color.LightBlue.Printf("Digit %d of cell [%d][%d] not in col %d\n", digit, row, col, col)
+					}
+					if notInBlk {
+						color.LightBlue.Printf("Digit %d of cell [%d][%d] not in blk [%d][%d]\n",
+							digit, row, col, row/scols, col/scols)
+					}
+				}
+
+				// erase any occurrence of the digit in the same row, col or block
+				if !notInRow {
+					eraseDigitFromRow(row, col, digit)
+
+					if *debugPtr {
+						color.LightBlue.Printf("After deletion from row %d: %v\n", row, mat2[row])
+					}
+				}
+				if !notInCol {
+					eraseDigitFromCol(row, col, digit)
+
+					if *debugPtr {
+						color.LightBlue.Printf("After deletion from col %d: %v\n", col, getColOfPossibleMat(mat2, col))
+					}
+				}
+				if !notInBlk {
+					eraseDigitFromBlk(row, col, digit)
+
+					if *debugPtr {
+						color.LightBlue.Printf("After deletion from blk [%d,%d]: %v\n", row/scols, col/scols, getBlkOfPossibleMat(mat2, row, col))
+					}
+				}
+				if notInRow && notInCol && notInBlk {
+					if *debugPtr {
+						color.LightBlue.Println("No deletion necessary.")
+					}
 				}
 			}
 			currNode = currNode.next
@@ -894,7 +974,7 @@ func rule3() (*linkedList, int) {
 							foundHiddenSingle = true
 
 							if *debugPtr {
-								color.LightYellow.Printf("Rule 4. Found lone single digit %d at cell [%d][%d]. Empty cells = %d\n", dig, row, col, emptyCnt)
+								color.LightYellow.Printf("Rule 3. Found hidden single digit %d at cell [%d][%d]. Empty cells = %d\n", dig, row, col, emptyCnt)
 							}
 
 							// erase any occurrence of the digit in the same row, col or block

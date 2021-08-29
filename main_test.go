@@ -214,45 +214,50 @@ func TestRule3(t *testing.T) {
 
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
 
-	mat = populateMat(input)
+	rule3test(t, input, 51)
 
-	emptyCnt = countEmpty(mat)
-
-	emptyL, mat2 = getPossibleMat(mat)
-
-	for {
-		matched, cnt := rule3()
-
-		digcnt := matched.countNodes()
-
-		printPossibleMat()
-		color.LightMagenta.Printf("Found: %d digits.\n", cnt)
-		if digcnt != cnt {
-			t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
-		}
-
-		matched.printResult("Found hidden single")
-
-		if cnt <= 0 {
-			break
-		}
-	}
 }
 
 func TestRule_3a(t *testing.T) {
 
 	input := "7..15..6991.37645.5.694.371..5.1.69.6.95.41.7.716.95...57.319.6.9386..1516..95..."
 
+	rule3test(t, input, 31)
+}
+
+func TestRule_3c(t *testing.T) {
+
+	input := "..78265.16.1395.47..5147.6.3..2.1...172.8.356...6.3..4....687..82.71.6.57..5324.."
+
+	rule3test(t, input, 36)
+}
+
+func TestRule_3d(t *testing.T) {
+
+	input := "4378265916813952472951478633..2.1978172.8.3569.8673124....687.282.71.6.57..532489"
+
+	rule3test(t, input, 16)
+}
+
+func TestRule_3e(t *testing.T) {
+
+	input := "43782659168139524729514786336.251978172.893569586731245.396871282971.635716532489"
+
+	rule3test(t, input, 4)
+
+}
+
+func rule3test(t *testing.T, input string, empCnt int) {
 	mat = populateMat(input)
 
 	emptyCnt = countEmpty(mat)
-	if emptyCnt != 31 {
-		t.Fatalf("Expected 31 but got %d.\n", emptyCnt)
+	if emptyCnt != empCnt {
+		t.Fatalf("Expected %d but got %d.\n", empCnt, emptyCnt)
 	}
 
 	emptyL, mat2 = getPossibleMat(mat)
-	if emptyL.countNodes() != 31 {
-		t.Fatalf("Expected 31 nodes in empty list but got %d.\n", emptyL.countNodes())
+	if emptyL.countNodes() != empCnt {
+		t.Fatalf("Expected %d nodes in empty list but got %d.\n", empCnt, emptyL.countNodes())
 	}
 
 	printPossibleMat()
