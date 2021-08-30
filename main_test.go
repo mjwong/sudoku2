@@ -214,7 +214,7 @@ func TestRule3(t *testing.T) {
 
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
 
-	rule3test(t, input, 51)
+	ruleTest(t, input, 3, 51)
 
 }
 
@@ -222,32 +222,55 @@ func TestRule_3a(t *testing.T) {
 
 	input := "7..15..6991.37645.5.694.371..5.1.69.6.95.41.7.716.95...57.319.6.9386..1516..95..."
 
-	rule3test(t, input, 31)
+	ruleTest(t, input, 3, 31)
 }
 
 func TestRule_3c(t *testing.T) {
 
 	input := "..78265.16.1395.47..5147.6.3..2.1...172.8.356...6.3..4....687..82.71.6.57..5324.."
 
-	rule3test(t, input, 36)
+	ruleTest(t, input, 3, 36)
 }
 
 func TestRule_3d(t *testing.T) {
 
 	input := "4378265916813952472951478633..2.1978172.8.3569.8673124....687.282.71.6.57..532489"
 
-	rule3test(t, input, 16)
+	ruleTest(t, input, 3, 16)
 }
 
 func TestRule_3e(t *testing.T) {
 
 	input := "43782659168139524729514786336.251978172.893569586731245.396871282971.635716532489"
 
-	rule3test(t, input, 4)
+	ruleTest(t, input, 3, 4)
 
 }
 
-func rule3test(t *testing.T, input string, empCnt int) {
+// Rule 5: Naked Pairs
+func TestRule5(t *testing.T) {
+
+	input := "142.73...597.462.3863.52...31852469772639.4.545976.32.6.54391.293128....2.461..39"
+
+	ruleTest(t, input, 5, 23)
+
+}
+
+// Rule 8: Hidden Pairs
+func TestRule8(t *testing.T) {
+
+	input := "43782659168139524729514786336.251978172.893569586731245.396871282971.635716532489"
+
+	ruleTest(t, input, 3, 4)
+
+}
+
+func ruleTest(t *testing.T, input string, rule, empCnt int) {
+	var (
+		cnt     int
+		desc    string
+		matched *linkedList
+	)
 	mat = populateMat(input)
 
 	emptyCnt = countEmpty(mat)
@@ -263,7 +286,14 @@ func rule3test(t *testing.T, input string, empCnt int) {
 	printPossibleMat()
 	printSudoku(mat)
 
-	matched, cnt := rule3()
+	switch rule {
+	case 3:
+		desc = "Hidden single"
+		matched, cnt = rule3()
+	case 8:
+		desc = "Hidden pairs"
+		matched, cnt = rule3()
+	}
 
 	digcnt := matched.countNodes()
 
@@ -274,7 +304,7 @@ func rule3test(t *testing.T, input string, empCnt int) {
 		t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
 	}
 
-	matched.printResult("Found hidden single")
+	matched.printResult(desc)
 	printSudoku(mat)
 
 	if emptyCnt == 0 {

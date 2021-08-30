@@ -22,6 +22,7 @@ type (
 	sqmat     [scols][scols][]int
 	pmat      [ncols][ncols][]int
 	matString string
+	fnRule    func() (*linkedList, int)
 )
 
 type cell struct {
@@ -73,31 +74,9 @@ func main() {
 		mat3 = mat
 		iterMat(*emptyL.head)
 	case 1:
-		totalcnt := 0
-		for {
-			matched, cnt := rule1()
-			fmt.Printf("Rule1. Found %d digits.\n", cnt)
-			matched.printResult("Found open single")
-			printSudoku(mat)
-			if cnt <= 0 {
-				break
-			}
-			totalcnt += cnt
-		}
-		fmt.Printf("Total found = %d.\n", totalcnt)
+		ruleLoop(rule1, "Rule1", "Open single")
 	case 3:
-		totalcnt := 0
-		for {
-			matched, cnt := rule3()
-			fmt.Printf("Rule3. Found %d digits.\n", cnt)
-			matched.printResult("Found hidden single")
-			printSudoku(mat)
-			if cnt <= 0 {
-				break
-			}
-			totalcnt += cnt
-		}
-		fmt.Printf("Total found = %d.\n", totalcnt)
+		ruleLoop(rule3, "Rule3", "Hidden single")
 	case 13:
 		rule1cnt := 0
 		rule2cnt := 0
@@ -124,8 +103,10 @@ func main() {
 			fmt.Printf("[%d,%d] : %v \n", node.row, node.row, node.vals)
 			node = node.next
 		}
+		printSudoku(mat)
 
 		// do iterations
+		fmt.Println("Start iterations.")
 		mat3 = mat
 		if emptyL.countNodes() > 0 {
 			fmt.Printf("Empty list count = %d.\n", emptyL.countNodes())
@@ -136,13 +117,29 @@ func main() {
 		printSudoku(mat)
 		fmt.Printf("Rule 1: Found %2d digits\n", rule1cnt)
 		fmt.Printf("Rule 3: Found %2d digits\n", rule2cnt)
-
+	case 5:
+		ruleLoop(rule5, "Rule5", "Naked pairs")
 	}
 
 	//color.LightMagenta.Println(*emptyL)
 	checkSums(mat3)
 	elapsed := time.Since(start)
 	log.Printf("IterMat: Iterations: %d. Empty cells: %d. Sudoku took %v sec\n", iterCnt, countEmpty(mat), elapsed.Seconds())
+}
+
+func ruleLoop(rule fnRule, name, desc string) {
+	totalcnt := 0
+	for {
+		matched, cnt := rule()
+		fmt.Printf("%s. Found %d digits.\n", name, cnt)
+		matched.printResult(desc)
+		printSudoku(mat)
+		if cnt <= 0 {
+			break
+		}
+		totalcnt += cnt
+	}
+	fmt.Printf("%s. Total found = %d.\n", name, totalcnt)
 }
 
 func createlinkedList() *linkedList {
@@ -467,6 +464,17 @@ func contains(arr []int, v int) bool {
 	return false
 }
 
+func containsMulti(arr []int, v []int) bool {
+	for _, a := range arr {
+		for e := range v {
+			if a == e {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func countEmpty(mat intmat) int {
 	var count int
 	for i := 0; i < ncols; i++ {
@@ -777,8 +785,59 @@ func eraseFromSlice(sl []int, v int) []int {
 	return sl
 }
 
+func eraseMultiFromSlice(sl []int, v []int) []int {
+	for i, a := range sl {
+		for e := range v {
+			if a == e {
+				return remove(sl, i)
+			}
+		}
+
+	}
+	return sl
+}
+
 func remove(slice []int, index int) []int {
 	return append(slice[:index], slice[index+1:]...)
+}
+
+// erase digit from row of possibility matrix
+func erasePairFromElseWhereInRow(row, col, col2 int, pair []int) bool {
+	const ncols = 9
+	erased := false
+
+	for c := 0; c < ncols; c++ {
+		if mat2[row][c] != nil && c != col && c != col2 {
+			if containsMulti(mat2[row][c], pair) {
+				mat2[row][c] = eraseMultiFromSlice(mat2[row][c], pair)
+				// remove any digit of the pair from cell at this position of the empty list
+				emptyL.eraseDigitFromCell(row, c, pair[0])
+				emptyL.eraseDigitFromCell(row, col2, pair[1])
+				erased = true
+			}
+		}
+	}
+
+	return erased
+}
+
+func erasePairFromElseWhereInCol(row, row2, col int, pair []int) bool {
+	const ncols = 9
+	erased := false
+
+	for r := 0; r < ncols; r++ {
+		if mat2[r][col] != nil && r != row && r != row2 {
+			if containsMulti(mat2[r][col], pair) {
+				mat2[r][col] = eraseMultiFromSlice(mat2[r][col], pair) // remove from possibility mat
+				// remove this digit from cell at this position of the empty list
+				emptyL.eraseDigitFromCell(r, col, pair[0])
+				emptyL.eraseDigitFromCell(row2, col, pair[1])
+				erased = true
+			}
+		}
+	}
+
+	return erased
 }
 
 func getColOfPossibleMat(mat2 pmat, col int) [][]int {
@@ -805,6 +864,18 @@ func getBlkOfPossibleMat(mat2 pmat, row, col int) [][]int {
 	}
 
 	return m
+}
+
+func intArrayEquals(a []int, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // Rule 1 - Open cell - 1 cell empty either in column, row or block.
@@ -1025,6 +1096,89 @@ func rule3() (*linkedList, int) {
 			}
 		}
 		itercnt++
+	}
+
+	return matched, count
+}
+
+// Rule 5	Naked pairs
+//          A pair of digits that occurs in exactly 2 cells in an entire row, column, or block.
+//          Erase any other occurrence of these 2 digits elsewhere in the same row, column or block.
+func rule5() (*linkedList, int) {
+	const (
+		scols = 3
+		ncols = 9
+	)
+
+	var (
+		col, row, col2, row2 int // position of last empty cell
+		count                int
+		pair                 []int
+		foundNakedPairs      bool
+		//prev                 *cell
+		matched *linkedList
+	)
+	matched = &linkedList{}
+	foundNakedPairs = true
+
+	for foundNakedPairs {
+		foundNakedPairs = false
+
+		currNode := emptyL.head
+
+		if currNode == nil {
+			color.Yellow.Println("Empty list.")
+		} else {
+			for currNode != nil {
+				row = currNode.row
+				col = currNode.col
+				if *debugPtr {
+					color.LightGreen.Printf("cell [%d][%d]. %+v\n", row, col, currNode.vals)
+				}
+
+				if len(currNode.vals) == 2 {
+					pair = currNode.vals
+					// check row
+					for c := 0; c < ncols; c++ {
+						if intArrayEquals(mat2[row][c], pair) && c != col {
+							col2 = c
+							foundNakedPairs = true
+							break
+						}
+					}
+					// erase these 2 digits from row
+					for c := 0; c < ncols; c++ {
+						erasePairFromElseWhereInRow(row, col, col2, pair)
+
+						if *debugPtr {
+							color.LightBlue.Printf("After deletion from row %d: %v\n", row, mat2[row])
+						}
+					}
+
+					// check col
+					for r := 0; r < ncols; r++ {
+						if intArrayEquals(mat2[r][col], pair) && r != row {
+							row2 = r
+							foundNakedPairs = true
+							break
+						}
+					}
+					// erase these 2 digits from col
+					for r := 0; r < ncols; r++ {
+						erasePairFromElseWhereInCol(row, row2, col, pair)
+
+						if *debugPtr {
+							color.LightBlue.Printf("After deletion from col %d: %v\n", col, getColOfPossibleMat(mat2, col))
+						}
+
+					}
+				}
+
+				//prev = currNode
+				currNode = currNode.next
+			}
+		}
+
 	}
 
 	return matched, count
