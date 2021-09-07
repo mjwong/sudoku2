@@ -4,20 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	l "github.com/mjwong/sudoku2/lib"
+	ll "github.com/mjwong/sudoku2/linkedlist"
+	lp "github.com/mjwong/sudoku2/linkedlistpair"
 	"gopkg.in/gookit/color.v1"
 )
-
-func IntArrayEquals(a []int, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
 
 func TestEmptyCount(t *testing.T) {
 
@@ -92,19 +83,19 @@ func TestGetPossibleMat(t *testing.T) {
 
 	emptyL, mat2 = getPossibleMat(mat)
 
-	fmt.Printf("%v\n", mat2)
+	printPossibleMat()
 
-	currNode := emptyL.head
+	currNode := emptyL.Head
 	if currNode == nil {
 		t.Fatalf("Empty list.")
 	} else {
 		i := 0
 		for currNode != nil {
-			if !IntArrayEquals(currNode.vals, list[i]) {
-				t.Fatalf("Expected %v but got %v\n", list[i], currNode.vals)
+			if !l.IntArrayEquals(currNode.Vals, list[i]) {
+				t.Fatalf("Expected %v but got %v\n", list[i], currNode.Vals)
 			}
 			i++
-			currNode = currNode.next
+			currNode = currNode.Next
 		}
 	}
 }
@@ -131,17 +122,13 @@ func TestDigitNotIn(t *testing.T) {
 		{[]int{}, []int{2, 4, 6, 8}, []int{2, 4, 8}, []int{2, 4, 7}, []int{}, []int{}, []int{2, 7, 8}, []int{2, 3, 4, 7, 8}, []int{2, 3, 4, 8}},
 	}
 
-	fmt.Printf("%v\n", mat2)
-
 	for i := 0; i < ncols; i++ {
 		for j := 0; j < ncols; j++ {
-			if !IntArrayEquals(mat2[i][j], list[i][j]) {
+			if !l.IntArrayEquals(mat2[i][j], list[i][j]) {
 				t.Fatalf("Expected %v but got %v\n", list[i][j], mat2[i][j])
 			}
 		}
 	}
-
-	printPossibleMat()
 
 	if len(input) != 81 {
 		t.Fatalf("Input matrix len not 81, got %d.\n", len(input))
@@ -170,16 +157,168 @@ func TestDelNode(t *testing.T) {
 
 	emptyL, mat2 = getPossibleMat(mat)
 
-	currentNode := emptyL.head
+	currentNode := emptyL.Head
 
 	// Fill in digit 7 in [1,1]
 	mat[1][1] = 7
 	mat2[1][1] = nil
 
-	emptyL.delNode(currentNode)
+	emptyL.DelNode(currentNode)
 
-	if emptyL.countNodes() != 8 {
-		t.Fatalf("Empty list count should be 8 but got %d.\n", emptyL.countNodes())
+	if emptyL.CountNodes() != 8 {
+		t.Fatalf("Empty list count should be 8 but got %d.\n", emptyL.CountNodes())
+	}
+}
+
+func TestIntArrEq(t *testing.T) {
+	arr1 := []int{1, 2, 3}
+	arr2 := []int{1, 2, 3}
+	arr3 := []int{2, 3, 4}
+
+	if !l.IntArrayEquals(arr1, arr2) {
+		t.Fatalf("Both arrays should be equal but not. %v == %v\n", arr1, arr2)
+	}
+
+	if l.IntArrayEquals(arr2, arr3) {
+		t.Fatalf("Both arrays should not be equal but are. %v != %v\n", arr2, arr3)
+	}
+}
+
+func TestCountPairs(t *testing.T) {
+	node1 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  4,
+			Col:  5,
+			Vals: []int{2, 8},
+		},
+		B: &ll.Cell{
+			Row:  6,
+			Col:  7,
+			Vals: []int{2, 8},
+		},
+	}
+
+	node2 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  1,
+			Col:  3,
+			Vals: []int{2, 4},
+		},
+		B: &ll.Cell{
+			Row:  4,
+			Col:  8,
+			Vals: []int{2, 4},
+		},
+	}
+
+	node3 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  1,
+			Col:  2,
+			Vals: []int{2, 8},
+		},
+		B: &ll.Cell{
+			Row:  2,
+			Col:  3,
+			Vals: []int{2, 8},
+		},
+	}
+
+	pairList := &lp.LinkedListPairs{}
+	pairList.AddNode(node1)
+	pairList.AddNode(node2)
+	pairList.AddNode(node3)
+	if pairList.CountNodes() != 3 {
+		t.Fatalf("Count should be 3 but got %d.\n", pairList.CountNodes())
+	}
+
+	if pairList.Head != node1 {
+		t.Fatalf("Head node should be %v but got %v.\n", node1, pairList.Head)
+	}
+
+	if pairList.Head.Next != node2 {
+		t.Fatalf("Second node should be %v but got %v.\n", node2, pairList.Head.Next)
+	}
+
+	if pairList.Last != node3 {
+		t.Fatalf("Last node should be %v but got %v.\n", node3, pairList.Last)
+	}
+
+	if pairList.Head.Next.Next.Next != nil {
+		t.Fatalf("After last node should be nil but got %v.\n", pairList.Head.Next.Next.Next)
+	}
+
+	if *debugPtr {
+		cNode := pairList.Head
+		for cNode != nil {
+			fmt.Printf("Pair1: row: %d col: %d. Pair2: row: %d col: %d. Next: %v.\n", cNode.A.Row, cNode.A.Col, cNode.B.Row, cNode.B.Col, cNode.Next)
+			cNode = cNode.Next
+		}
+	}
+}
+
+func TestContainsPair(t *testing.T) {
+	node1 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  4,
+			Col:  5,
+			Vals: []int{2, 8},
+		},
+		B: &ll.Cell{
+			Row:  6,
+			Col:  7,
+			Vals: []int{2, 8},
+		},
+	}
+
+	node2 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  1,
+			Col:  3,
+			Vals: []int{2, 4},
+		},
+		B: &ll.Cell{
+			Row:  4,
+			Col:  8,
+			Vals: []int{2, 4},
+		},
+	}
+
+	node3 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  4,
+			Col:  5,
+			Vals: []int{2, 8},
+		},
+		B: &ll.Cell{
+			Row:  6,
+			Col:  7,
+			Vals: []int{2, 8},
+		},
+	}
+
+	node4 := &lp.Pair{
+		A: &ll.Cell{
+			Row:  6,
+			Col:  7,
+			Vals: []int{2, 8},
+		},
+		B: &ll.Cell{
+			Row:  4,
+			Col:  5,
+			Vals: []int{2, 8},
+		},
+	}
+
+	pairList := &lp.LinkedListPairs{}
+	pairList.AddNode(node1)
+	pairList.AddNode(node2)
+
+	if !pairList.Contains(node3) {
+		t.Fatalf("The pairs should be the same but are not.\n")
+	}
+	if !pairList.Contains(node4) { // the cells are reversed.
+		t.Fatalf("The reversed pairs should be the same but are not.\n")
 	}
 }
 
@@ -201,13 +340,13 @@ func TestRule1(t *testing.T) {
 		t.Fatalf("There are errors in the resulting matrix.\n")
 	}
 
-	digcnt := matched.countNodes()
+	digcnt := matched.CountNodes()
 
 	color.LightMagenta.Printf("Found: %d digits.\n", cnt)
 	if digcnt != cnt {
 		t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
 	}
-	matched.printResult("Found open single")
+	matched.PrintResult("Found open single")
 }
 
 func TestRule3(t *testing.T) {
@@ -216,6 +355,17 @@ func TestRule3(t *testing.T) {
 
 	ruleTest(t, input, 3, 51)
 
+}
+
+// looping rule3
+func TestRule3L(t *testing.T) {
+	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
+	mat = populateMat(input)
+
+	emptyCnt = countEmpty(mat)
+	emptyL, mat2 = getPossibleMat(mat)
+
+	ruleLoop(rule3, "Hidden single")
 }
 
 func TestRule_3a(t *testing.T) {
@@ -267,9 +417,7 @@ func TestRule8(t *testing.T) {
 
 func ruleTest(t *testing.T, input string, rule, empCnt int) {
 	var (
-		cnt     int
-		desc    string
-		matched *linkedList
+		desc string
 	)
 	mat = populateMat(input)
 
@@ -279,32 +427,40 @@ func ruleTest(t *testing.T, input string, rule, empCnt int) {
 	}
 
 	emptyL, mat2 = getPossibleMat(mat)
-	if emptyL.countNodes() != empCnt {
-		t.Fatalf("Expected %d nodes in empty list but got %d.\n", empCnt, emptyL.countNodes())
+	if emptyL.CountNodes() != empCnt {
+		t.Fatalf("Expected %d nodes in empty list but got %d.\n", empCnt, emptyL.CountNodes())
 	}
 
 	printPossibleMat()
 	printSudoku(mat)
+	fmt.Printf("Starting empty cells = %d\n", emptyCnt)
 
 	switch rule {
 	case 3:
 		desc = "Hidden single"
-		matched, cnt = rule3()
+		matched, cnt := rule3()
+		digcnt := matched.CountNodes()
+
+		printPossibleMat()
+
+		color.LightMagenta.Printf("Found: %d digits.\n", cnt)
+		if digcnt != cnt {
+			t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
+		}
+		matched.PrintResult(desc)
+	case 5:
+		desc = "Naked pairs"
+		matched, cnt := rule5()
+		fmt.Printf("Found: %s = %d.\n", desc, cnt)
+		matched.PrintResult(desc)
+		printPossibleMat()
 	case 8:
 		desc = "Hidden pairs"
-		matched, cnt = rule3()
+		matched, cnt := rule3()
+		fmt.Printf("Found: %s = %d.\n", desc, cnt)
+		matched.PrintResult(desc)
 	}
 
-	digcnt := matched.countNodes()
-
-	printPossibleMat()
-
-	color.LightMagenta.Printf("Found: %d digits.\n", cnt)
-	if digcnt != cnt {
-		t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
-	}
-
-	matched.printResult(desc)
 	printSudoku(mat)
 
 	if emptyCnt == 0 {
