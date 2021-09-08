@@ -4,41 +4,27 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"reflect"
-	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
-	l "github.com/mjwong/sudoku2/lib"
-	ll "github.com/mjwong/sudoku2/linkedlist"
+	. "github.com/mjwong/sudoku2/lib"
+	. "github.com/mjwong/sudoku2/linkedlist"
 	ml "github.com/mjwong/sudoku2/matchlist"
 	"gopkg.in/gookit/color.v1"
 )
 
-const (
-	N     = 9
-	SQ    = 3
-	nsize = 81
-)
-
 type (
-	intmat    [N][N]int
-	sqmat     [SQ][SQ][]int
-	pmat      [N][N][]int
-	matString string
-	fnRule    func() (*ll.LinkedList, int)
-	fnRule5   func() (*ml.Matchlist, int)
+	fnRule  func() (*LinkedList, int)
+	fnRule5 func() (*ml.Matchlist, int)
 )
 
 var (
 	iterCnt  int
 	emptyCnt int
-	mat      intmat
-	mask     intmat // matrix to mark cross-out cells
-	mat2     pmat   // matrix with possible values in empty cells
-	mat3     intmat // guessed matrix
-	emptyL   *ll.LinkedList
+	mat      Intmat
+	mat2     Pmat   // matrix with possible values in empty cells
+	mat3     Intmat // guessed matrix
+	emptyL   *LinkedList
 	debugPtr *bool = flag.Bool("debug", false, "verbose debug mode")
 	prtLLPtr *bool = flag.Bool("prtLL", false, "print the linked list of empty cells")
 	rule     *int  = flag.Int("r", 0, "The deffault is 0, which will iterate matrix using linked list.")
@@ -51,12 +37,12 @@ func main() {
 	)
 	flag.Parse()
 
-	mat = populateMat(readInput())
-	emptyCnt = countEmpty(mat)
+	mat = PopulateMat(readInput())
+	emptyCnt = CountEmpty(mat)
 	fmt.Printf("Empty cells: %d\n", emptyCnt)
 	start = time.Now()
 	printSudoku(mat)
-	emptyL, mat2 = getPossibleMat(mat)
+	emptyL, mat2 = GetPossibleMat(mat)
 	fmt.Println("Starting possibility matrix.")
 	printPossibleMat()
 
@@ -72,9 +58,9 @@ func main() {
 		printSudoku(mat3)
 		checkSums(mat3)
 	case 1:
-		ruleLoop(rule1, "Open single")
+		RuleLoop(rule1, "Open single")
 	case 3:
-		ruleLoop(rule3, "Hidden single")
+		RuleLoop(rule3, "Hidden single")
 	case 13:
 		rule1cnt := 0
 		rule2cnt := 0
@@ -122,10 +108,10 @@ func main() {
 	//color.LightMagenta.Println(*emptyL)
 
 	elapsed = time.Since(start)
-	log.Printf("IterMat: Iterations: %d. Empty cells: %d. Sudoku took %v sec\n", iterCnt, countEmpty(mat), elapsed.Seconds())
+	log.Printf("IterMat: Iterations: %d. Empty cells: %d. Sudoku took %v sec\n", iterCnt, CountEmpty(mat), elapsed.Seconds())
 }
 
-func ruleLoop(rule fnRule, desc string) {
+func RuleLoop(rule fnRule, desc string) int {
 	totalcnt := 0
 	fnName := GetFunctionName(rule)
 	for {
@@ -140,6 +126,7 @@ func ruleLoop(rule fnRule, desc string) {
 	}
 	fmt.Printf("%s: Total found = %d.\n", fnName, totalcnt)
 	printPossibleMat()
+	return totalcnt
 }
 
 func ruleLoop5(rule fnRule5, desc string) {
@@ -159,22 +146,18 @@ func ruleLoop5(rule fnRule5, desc string) {
 	printPossibleMat()
 }
 
-// ****************************************** start of linkedListPairs ******************************************
-
-// ****************************************** end of linkedListPairs ******************************************
-
-func getPossibleMat(mat intmat) (*ll.LinkedList, pmat) {
+func GetPossibleMat(mat Intmat) (*LinkedList, Pmat) {
 	const (
 		ncols = 9
 	)
 	var (
-		mat2                pmat
-		emptyL              *ll.LinkedList
+		mat2                Pmat
+		emptyL              *LinkedList
 		inRow, inCol, inSqu bool
 		valList             []int
 	)
 
-	emptyL = ll.CreatelinkedList()
+	emptyL = CreatelinkedList()
 
 	// initialize possible mat
 	for i := 0; i < ncols; i++ {
@@ -189,9 +172,9 @@ func getPossibleMat(mat intmat) (*ll.LinkedList, pmat) {
 
 			if mat[i][j] == 0 {
 				for p := 1; p < ncols+1; p++ {
-					inRow = contains(getArrForRow(mat, i), p)
-					inCol = contains(getArrForCol(mat, j), p)
-					inSqu = contains(getArrForSqu(mat, i, j), p)
+					inRow = Contains(GetArrForRow(mat, i), p)
+					inCol = Contains(GetArrForCol(mat, j), p)
+					inSqu = Contains(GetArrForSqu(mat, i, j), p)
 
 					if !inRow && !inCol && !inSqu {
 						mat2[i][j] = append(mat2[i][j], p)
@@ -205,7 +188,16 @@ func getPossibleMat(mat intmat) (*ll.LinkedList, pmat) {
 	return emptyL, mat2
 }
 
-func inRow(m intmat, row, num int) bool {
+// ****************************************** start of find/erase fns ******************************************
+
+func PrepPmat(input string) {
+	mat = PopulateMat(input)
+	emptyCnt = CountEmpty(mat)
+
+	emptyL, mat2 = GetPossibleMat(mat)
+}
+
+func inRow(m Intmat, row, num int) bool {
 	for c := 0; c < N; c++ {
 		if m[row][c] == num {
 			return true
@@ -214,7 +206,7 @@ func inRow(m intmat, row, num int) bool {
 	return false
 }
 
-func inCol(m intmat, col, num int) bool {
+func inCol(m Intmat, col, num int) bool {
 	for r := 0; r < N; r++ {
 		if m[r][col] == num {
 			return true
@@ -223,7 +215,7 @@ func inCol(m intmat, col, num int) bool {
 	return false
 }
 
-func inSqu(m intmat, row, col, num int) bool {
+func inSqu(m Intmat, row, col, num int) bool {
 	startRow := row / SQ * SQ
 	startCol := col / SQ * SQ
 
@@ -237,7 +229,7 @@ func inSqu(m intmat, row, col, num int) bool {
 	return false
 }
 
-func iterMat(currCell *ll.Cell) {
+func iterMat(currCell *Cell) {
 
 	if emptyCnt > 0 {
 		iterCnt++
@@ -263,64 +255,11 @@ func iterMat(currCell *ll.Cell) {
 	}
 }
 
-func isSafe(m intmat, row, col, num int) bool {
+func isSafe(m Intmat, row, col, num int) bool {
 	if !inRow(m, row, num) && !inCol(m, col, num) && !inSqu(m, row, col, num) {
 		return true
 	}
 	return false
-}
-
-// Get calling function name
-func funcName() string {
-	pc, _, _, _ := runtime.Caller(1)
-	return runtime.FuncForPC(pc).Name()
-}
-
-// Get function name, e.g. main.foo
-func GetFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
-}
-
-func getArrForRow(m intmat, i int) []int {
-	var arrRow []int
-
-	for j := 0; j < N; j++ {
-		if m[i][j] != 0 {
-			arrRow = append(arrRow, m[i][j])
-		}
-	}
-	return arrRow
-}
-
-func getArrForCol(m intmat, j int) []int {
-	var arrCol []int
-
-	for i := 0; i < N; i++ {
-		if m[i][j] != 0 {
-			arrCol = append(arrCol, m[i][j])
-		}
-	}
-	return arrCol
-}
-
-func getArrForSqu(m intmat, i, j int) []int {
-	const scols = 3
-	var (
-		startRow, startCol int
-		arrSq              []int
-	)
-
-	startRow = i / SQ * SQ
-	startCol = j / SQ * SQ
-
-	for x := startRow; x < startRow+SQ; x++ {
-		for y := startCol; y < startCol+SQ; y++ {
-			if m[x][y] != 0 {
-				arrSq = append(arrSq, m[x][y])
-			}
-		}
-	}
-	return arrSq
 }
 
 func readInput() string {
@@ -338,68 +277,8 @@ func readInput() string {
 	return s
 }
 
-func populateMat(s string) intmat {
-	var (
-		x, y int
-		mat  intmat
-	)
-
-	// replace '.' with 0 and handle as INT
-	for _, i := range strings.SplitAfter(s, "") {
-		j, err := strconv.Atoi(i)
-		if err != nil {
-			if i != "." {
-				panic(err)
-			} else {
-				j = 0
-			}
-		}
-
-		if y > N-1 {
-			y = 0
-			x++
-		}
-		mat[x][y] = j
-		y++
-	}
-	return mat
-}
-
-func contains(arr []int, v int) bool {
-	for _, a := range arr {
-		if a == v {
-			return true
-		}
-	}
-	return false
-}
-
-func containsMulti(arr []int, v []int) bool {
-	for _, a := range arr {
-		fmt.Printf("arr elem: %d\n", a)
-		for _, e := range v {
-			if a == e {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func countEmpty(mat intmat) int {
-	var count int
-	for i := 0; i < N; i++ {
-		for j := 0; j < N; j++ {
-			if mat[i][j] == 0 {
-				count++
-			}
-		}
-	}
-	return count
-}
-
 // check the row, col and square sums
-func checkSums(m intmat) bool {
+func checkSums(m Intmat) bool {
 	const (
 		totalSum = 405
 	)
@@ -468,7 +347,7 @@ func sumArr(arr []int) int {
 	return result
 }
 
-func printSudoku(m intmat) {
+func printSudoku(m Intmat) {
 	var sqi, sqj int
 	for i := 0; i < N; i++ {
 		sqi = (i / SQ) % 2
@@ -503,29 +382,8 @@ func arr2String(a []int, delim string) string {
 	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(a)), delim), "[]")
 }
 
-// print with highlighted no. p
-func printMask(p int) {
-	var m int
-	for i := 0; i < N; i++ {
-		for j := 0; j < N; j++ {
-			m = mask[i][j]
-			if m == -1 {
-				color.Cyan.Printf("%2d ", mask[i][j])
-			} else if m == 0 {
-				color.Yellow.Printf("%2d ", mask[i][j])
-			} else if m == p {
-				color.Red.Printf("%2d ", mask[i][j])
-			} else {
-				fmt.Printf("%2d ", mask[i][j])
-			}
-		}
-		fmt.Println()
-	}
-	fmt.Println("\n------------------------------")
-}
-
 // check row of possibility matrix
-func findDigitInRow(mat2 pmat, row, col, dig int) bool {
+func findDigitInRow(mat2 Pmat, row, col, dig int) bool {
 	if *debugPtr {
 		fmt.Println("In findDigitInRow...")
 	}
@@ -536,7 +394,7 @@ func findDigitInRow(mat2 pmat, row, col, dig int) bool {
 				fmt.Printf("Cell [%d][%d] = %v\n", row, c, mat2[row][c])
 			}
 
-			if contains(mat2[row][c], dig) {
+			if Contains(mat2[row][c], dig) {
 
 				if *debugPtr {
 					fmt.Println("contains digit")
@@ -551,7 +409,7 @@ func findDigitInRow(mat2 pmat, row, col, dig int) bool {
 }
 
 // check column of possibility matrix
-func findDigitInCol(mat2 pmat, row, col, dig int) bool {
+func findDigitInCol(mat2 Pmat, row, col, dig int) bool {
 	if *debugPtr {
 		fmt.Println("In findDigitInCol...")
 	}
@@ -562,7 +420,7 @@ func findDigitInCol(mat2 pmat, row, col, dig int) bool {
 				fmt.Printf("Cell [%d][%d] = %v\n", r, col, mat2[r][col])
 			}
 
-			if contains(mat2[r][col], dig) {
+			if Contains(mat2[r][col], dig) {
 				if *debugPtr {
 					fmt.Println("contains digit")
 				}
@@ -575,7 +433,7 @@ func findDigitInCol(mat2 pmat, row, col, dig int) bool {
 }
 
 // check block of possibility matrix corresponding to cell [row[col]
-func findDigitInBlk(mat2 pmat, row, col, dig int) bool {
+func findDigitInBlk(mat2 Pmat, row, col, dig int) bool {
 	if *debugPtr {
 		fmt.Println("In findDigitInBlk...")
 	}
@@ -590,7 +448,7 @@ func findDigitInBlk(mat2 pmat, row, col, dig int) bool {
 					color.White.Printf("Cell [%d][%d] = %v\n", x, y, mat2[x][y])
 				}
 
-				if contains(mat2[x][y], dig) {
+				if Contains(mat2[x][y], dig) {
 
 					if *debugPtr {
 						fmt.Println("contains digit")
@@ -611,7 +469,7 @@ func findDigitInBlk(mat2 pmat, row, col, dig int) bool {
 // * start of funcs for naked pairs *
 
 // check row of possibility matrix
-func findDigitInRowPair(mat2 pmat, row, col, col2 int, digits []int) bool {
+func findDigitInRowPair(mat2 Pmat, row, col, col2 int, digits []int) bool {
 	if *debugPtr {
 		fmt.Println("In findDigitInRowPair..")
 	}
@@ -622,7 +480,7 @@ func findDigitInRowPair(mat2 pmat, row, col, col2 int, digits []int) bool {
 				fmt.Printf("Cell [%d][%d] = %v\n", row, c, mat2[row][c])
 			}
 			fmt.Println("here")
-			if containsMulti(mat2[row][c], digits) {
+			if ContainsMulti(mat2[row][c], digits) {
 
 				if *debugPtr {
 					fmt.Println("contains digits")
@@ -641,17 +499,68 @@ func eraseDigitsFromRowOfPairs(row, col, col2 int, digits []int) bool {
 
 	for c := 0; c < N; c++ {
 		if mat2[row][c] != nil && c != col && c != col2 {
-			if contains(mat2[row][c], digits[0]) {
-				mat2[row][c] = l.EraseFromSlice(mat2[row][c], digits[0])
+			if Contains(mat2[row][c], digits[0]) {
+				mat2[row][c] = EraseFromSlice(mat2[row][c], digits[0])
 				emptyL.EraseDigitFromCell(row, c, digits[0])
 				fmt.Printf("Deleted %d from [%d,%d]\n", digits[0], row, c)
 				erased = true
 			}
 
-			if contains(mat2[row][c], digits[1]) {
-				mat2[row][c] = l.EraseFromSlice(mat2[row][c], digits[1])
+			if Contains(mat2[row][c], digits[1]) {
+				mat2[row][c] = EraseFromSlice(mat2[row][c], digits[1])
 				emptyL.EraseDigitFromCell(row, c, digits[1])
 				fmt.Printf("Deleted %d from [%d,%d]\n", digits[1], row, c)
+				erased = true
+			}
+		}
+	}
+
+	return erased
+}
+
+// check col of possibility matrix if any of the digits in the naked pair is
+// found in this col
+func findDigitInColPair(mat2 Pmat, row, col, row2 int, digits []int) bool {
+	if *debugPtr {
+		fmt.Println("In findDigitInColPair..")
+	}
+
+	for r := 0; r < N; r++ {
+		if mat2[r][col] != nil && r != row && r != row2 {
+			if *debugPtr {
+				fmt.Printf("Cell [%d][%d] = %v\n", r, col, mat2[r][col])
+			}
+			fmt.Println("here in col")
+			if ContainsMulti(mat2[r][col], digits) {
+
+				if *debugPtr {
+					fmt.Println("contains digits")
+				}
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// erase digit from col of possibility matrix in the case of naked pairs
+func eraseDigitsFromColOfPairs(row, col, row2 int, digits []int) bool {
+	erased := false
+
+	for r := 0; r < N; r++ {
+		if mat2[r][col] != nil && r != row && r != row2 {
+			if Contains(mat2[r][col], digits[0]) {
+				mat2[r][col] = EraseFromSlice(mat2[r][col], digits[0])
+				emptyL.EraseDigitFromCell(r, col, digits[0])
+				fmt.Printf("Deleted %d from [%d,%d]\n", digits[0], r, col)
+				erased = true
+			}
+
+			if Contains(mat2[r][col], digits[1]) {
+				mat2[r][col] = EraseFromSlice(mat2[r][col], digits[1])
+				emptyL.EraseDigitFromCell(r, col, digits[1])
+				fmt.Printf("Deleted %d from [%d,%d]\n", digits[1], r, col)
 				erased = true
 			}
 		}
@@ -671,8 +580,8 @@ func eraseDigitFromRow(row, col, dig int) bool {
 
 	for c := 0; c < ncols; c++ {
 		if mat2[row][c] != nil && c != col {
-			if contains(mat2[row][c], dig) {
-				mat2[row][c] = l.EraseFromSlice(mat2[row][c], dig)
+			if Contains(mat2[row][c], dig) {
+				mat2[row][c] = EraseFromSlice(mat2[row][c], dig)
 				// remove this digit from cell at this position of the empty list
 				emptyL.EraseDigitFromCell(row, c, dig)
 				erased = true
@@ -689,8 +598,8 @@ func eraseDigitFromCol(row, col, dig int) bool {
 
 	for r := 0; r < ncols; r++ {
 		if mat2[r][col] != nil && r != row {
-			if contains(mat2[r][col], dig) {
-				mat2[r][col] = l.EraseFromSlice(mat2[r][col], dig) // remove from possibility mat
+			if Contains(mat2[r][col], dig) {
+				mat2[r][col] = EraseFromSlice(mat2[r][col], dig) // remove from possibility mat
 				// remove this digit from cell at this position of the empty list
 				emptyL.EraseDigitFromCell(r, col, dig)
 				erased = true
@@ -714,8 +623,8 @@ func eraseDigitFromBlk(row, col, dig int) bool {
 	for x := startRow; x < startRow+scols; x++ {
 		for y := startCol; y < startCol+scols; y++ {
 			if mat2[x][y] != nil && x != row && y != col {
-				if contains(mat2[x][y], dig) {
-					mat2[x][y] = l.EraseFromSlice(mat2[x][y], dig)
+				if Contains(mat2[x][y], dig) {
+					mat2[x][y] = EraseFromSlice(mat2[x][y], dig)
 					// remove this digit from cell at this position of the empty list
 					emptyL.EraseDigitFromCell(x, y, dig)
 					erased = true
@@ -734,8 +643,8 @@ func erasePairFromElseWhereInRow(row, col, col2 int, pair []int) bool {
 
 	for c := 0; c < ncols; c++ {
 		if mat2[row][c] != nil && c != col && c != col2 {
-			if containsMulti(mat2[row][c], pair) {
-				mat2[row][c] = l.EraseMultiFromSlice(mat2[row][c], pair)
+			if ContainsMulti(mat2[row][c], pair) {
+				mat2[row][c] = EraseMultiFromSlice(mat2[row][c], pair)
 				// remove any digit of the pair from cell at this position of the empty list
 				emptyL.EraseDigitFromCell(row, c, pair[0])
 				emptyL.EraseDigitFromCell(row, col2, pair[1])
@@ -753,8 +662,8 @@ func erasePairFromElseWhereInCol(row, row2, col int, pair []int) bool {
 
 	for r := 0; r < ncols; r++ {
 		if mat2[r][col] != nil && r != row && r != row2 {
-			if containsMulti(mat2[r][col], pair) {
-				mat2[r][col] = l.EraseMultiFromSlice(mat2[r][col], pair) // remove from possibility mat
+			if ContainsMulti(mat2[r][col], pair) {
+				mat2[r][col] = EraseMultiFromSlice(mat2[r][col], pair) // remove from possibility mat
 				// remove this digit from cell at this position of the empty list
 				emptyL.EraseDigitFromCell(r, col, pair[0])
 				emptyL.EraseDigitFromCell(row2, col, pair[1])
@@ -766,7 +675,7 @@ func erasePairFromElseWhereInCol(row, row2, col int, pair []int) bool {
 	return erased
 }
 
-func getColOfPossibleMat(mat2 pmat, col int) [][]int {
+func getColOfPossibleMat(mat2 Pmat, col int) [][]int {
 	var m [][]int
 
 	for i := 0; i < N; i++ {
@@ -776,7 +685,7 @@ func getColOfPossibleMat(mat2 pmat, col int) [][]int {
 	return m
 }
 
-func getBlkOfPossibleMat(mat2 pmat, row, col int) [][]int {
+func getBlkOfPossibleMat(mat2 Pmat, row, col int) [][]int {
 	var m [][]int
 
 	startRow := row / SQ * SQ
@@ -796,14 +705,14 @@ func getBlkOfPossibleMat(mat2 pmat, row, col int) [][]int {
 // Rule 1 - Open cell - 1 cell empty either in column, row or block.
 // Search the possible matrix for any col, row or block that has only 1 empty cell
 // Empty cells contain lists. Non-empty cells contain nil.
-func rule1() (*ll.LinkedList, int) {
+func rule1() (*LinkedList, int) {
 	var (
 		col, row                     int // position of last empty cell
 		digit, count                 int
 		notInRow, notInCol, notInBlk bool
-		matched                      *ll.LinkedList
+		matched                      *LinkedList
 	)
-	matched = &ll.LinkedList{}
+	matched = &LinkedList{}
 
 	currNode := emptyL.Head
 	if currNode == nil {
@@ -899,15 +808,15 @@ func rule1() (*ll.LinkedList, int) {
 // Rule 3	Hidden singles
 //          A digit that is the only one in an entire row, column, or block.
 //          Fill in this digiti and erase any other occurrence of this digit in the same row, column or block.
-func rule3() (*ll.LinkedList, int) {
+func rule3() (*LinkedList, int) {
 	var (
 		col, row                     int // position of last empty cell
 		count, itercnt               int
 		notInRow, notInCol, notInBlk bool
 		foundHiddenSingle            bool
-		matched                      *ll.LinkedList
+		matched                      *LinkedList
 	)
-	matched = &ll.LinkedList{}
+	matched = &LinkedList{}
 
 	for dig := 1; dig <= N; dig++ {
 		itercnt = 0
@@ -925,7 +834,7 @@ func rule3() (*ll.LinkedList, int) {
 						color.LightGreen.Printf("cell [%d][%d]. %+v\n", row, col, currNode.Vals)
 					}
 
-					if contains(currNode.Vals, dig) {
+					if Contains(currNode.Vals, dig) {
 						// check that there is no occurrence in same row, col or block
 						notInRow = !findDigitInRow(mat2, row, col, dig)
 						notInCol = !findDigitInCol(mat2, row, col, dig)
@@ -1014,18 +923,13 @@ func rule3() (*ll.LinkedList, int) {
 //          A pair of digits that occurs in exactly 2 cells in an entire row, column, or block.
 //          Erase any other occurrence of these 2 digits elsewhere in the same row, column or block.
 func rule5() (*ml.Matchlist, int) {
-	const (
-		scols = 3
-		ncols = 9
-	)
-
 	var (
 		col, row, col2, row2 int // position of last empty cell
 		count                int
 		twoElem              []int
 		foundNakedPairs      bool
-		inRow                bool
-		secondNode           *ll.Cell
+		inRow, inCol         bool
+		secondNode           *Cell
 		matched              *ml.Matchlist
 	)
 	matched = &ml.Matchlist{}
@@ -1050,8 +954,8 @@ func rule5() (*ml.Matchlist, int) {
 				if len(currNode.Vals) == 2 { // has 2 possible values
 					twoElem = currNode.Vals
 					// check row
-					for c := 0; c < ncols; c++ {
-						if l.IntArrayEquals(mat2[row][c], twoElem) && c != col {
+					for c := 0; c < N; c++ {
+						if IntArrayEquals(mat2[row][c], twoElem) && c != col {
 							col2 = c
 
 							if *debugPtr {
@@ -1060,29 +964,29 @@ func rule5() (*ml.Matchlist, int) {
 
 							secondNode = emptyL.GetNodeForCell(row, col2)
 
-							arr := ml.AddArrIdx([]ml.Idx{}, currNode)
-							arr = ml.AddArrIdx(arr, secondNode)
-
-							//fmt.Printf("Match Cnt: %d\n", matched.CountNodes())
+							arr := ml.AddIdx(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
 								matched.AddNode(arr)
-								foundNakedPairs = true
-								count++
+
 								fmt.Printf("Row %d\n", row)
 								inRow = findDigitInRowPair(mat2, row, col, col2, twoElem)
 								if inRow {
-									fmt.Printf("Found digits of pairs in row %d.\n", row)
+									if *debugPtr {
+										fmt.Printf("Found digits of pairs in row %d.\n", row)
+									}
 									eraseDigitsFromRowOfPairs(row, col, col2, twoElem)
 								}
+								foundNakedPairs = true
+								count++
 								break
 							}
 						}
 					}
 
 					// check col
-					for r := 0; r < ncols; r++ {
-						if l.IntArrayEquals(mat2[r][col], twoElem) && r != row {
+					for r := 0; r < N; r++ {
+						if IntArrayEquals(mat2[r][col], twoElem) && r != row {
 							row2 = r
 
 							if *debugPtr {
@@ -1091,11 +995,19 @@ func rule5() (*ml.Matchlist, int) {
 
 							secondNode = emptyL.GetNodeForCell(row2, col)
 
-							arr := ml.AddArrIdx([]ml.Idx{}, currNode)
-							arr = ml.AddArrIdx(arr, secondNode)
+							arr := ml.AddIdx(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
 								matched.AddNode(arr)
+
+								fmt.Printf("Col %d\n", col)
+								inCol = findDigitInColPair(mat2, row, col, row2, twoElem)
+								if inCol {
+									if *debugPtr {
+										fmt.Printf("Found digits of pairs in col %d.\n", col)
+									}
+									eraseDigitsFromColOfPairs(row, col, row2, twoElem)
+								}
 								foundNakedPairs = true
 								count++
 								break
@@ -1107,7 +1019,6 @@ func rule5() (*ml.Matchlist, int) {
 				currNode = currNode.Next
 			}
 		}
-
 	}
 
 	return matched, count

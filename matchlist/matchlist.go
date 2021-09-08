@@ -77,16 +77,22 @@ func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
 	return false
 }
 
-func AddArrIdx(arr []Idx, node *ll.Cell) []Idx {
-	newIdx := Idx{
-		Row:  node.Row,
-		Col:  node.Col,
-		Vals: node.Vals,
+// accepts a variable no. of cells
+func AddIdx(arr []Idx, a ...*ll.Cell) []Idx {
+	for _, val := range a {
+		newIdx := Idx{
+			Row:  val.Row,
+			Col:  val.Col,
+			Vals: val.Vals,
+		}
+
+		if arr == nil {
+			arr = []Idx{}
+		}
+		arr = append(arr, newIdx)
 	}
 
-	arr = append(arr, newIdx)
 	return arr
-
 }
 
 func (p *Matchlist) PrintResult(desc string) {

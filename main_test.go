@@ -4,18 +4,27 @@ import (
 	"fmt"
 	"testing"
 
-	l "github.com/mjwong/sudoku2/lib"
+	. "github.com/mjwong/sudoku2/lib"
 	ll "github.com/mjwong/sudoku2/linkedlist"
 	lp "github.com/mjwong/sudoku2/linkedlistpair"
 	"gopkg.in/gookit/color.v1"
+)
+
+var (
+	ruleTable = map[int]string{
+		1: "Open single",
+		3: "Hidden single",
+		5: "Naked pair",
+		8: "Hidden pair",
+	}
 )
 
 func TestEmptyCount(t *testing.T) {
 
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
 
-	mat := populateMat(input)
-	emptyCnt := countEmpty(mat)
+	mat := PopulateMat(input)
+	emptyCnt := CountEmpty(mat)
 
 	if emptyCnt != 51 {
 		t.Fatalf("Expected 51 but got %d.\n", emptyCnt)
@@ -79,9 +88,9 @@ func TestGetPossibleMat(t *testing.T) {
 		{2, 3, 4, 8},
 	}
 
-	mat := populateMat(input)
+	mat := PopulateMat(input)
 
-	emptyL, mat2 = getPossibleMat(mat)
+	emptyL, mat2 = GetPossibleMat(mat)
 
 	printPossibleMat()
 
@@ -91,7 +100,7 @@ func TestGetPossibleMat(t *testing.T) {
 	} else {
 		i := 0
 		for currNode != nil {
-			if !l.IntArrayEquals(currNode.Vals, list[i]) {
+			if !IntArrayEquals(currNode.Vals, list[i]) {
 				t.Fatalf("Expected %v but got %v\n", list[i], currNode.Vals)
 			}
 			i++
@@ -105,12 +114,12 @@ func TestDigitNotIn(t *testing.T) {
 
 	input := "...15....91..764..5.6.4.3.1......69.6..5.41.7.71........7.3.9.6..386..151...95..."
 
-	mat := populateMat(input)
+	mat := PopulateMat(input)
 
-	emptyL, mat2 = getPossibleMat(mat)
+	emptyL, mat2 = GetPossibleMat(mat)
 
 	// possibility matrix
-	list := pmat{
+	list := Pmat{
 		{[]int{2, 3, 4, 7, 8}, []int{2, 3, 4, 8}, []int{2, 4, 8}, []int{}, []int{}, []int{2, 3, 8, 9}, []int{2, 7, 8}, []int{2, 6, 7, 8}, []int{2, 8, 9}},
 		{[]int{}, []int{}, []int{2, 8}, []int{2, 3}, []int{}, []int{}, []int{}, []int{2, 5, 8}, []int{2, 8}},
 		{[]int{}, []int{2, 8}, []int{}, []int{2, 9}, []int{}, []int{2, 8, 9}, []int{}, []int{2, 7, 8}, []int{}},
@@ -124,7 +133,7 @@ func TestDigitNotIn(t *testing.T) {
 
 	for i := 0; i < ncols; i++ {
 		for j := 0; j < ncols; j++ {
-			if !l.IntArrayEquals(mat2[i][j], list[i][j]) {
+			if !IntArrayEquals(mat2[i][j], list[i][j]) {
 				t.Fatalf("Expected %v but got %v\n", list[i][j], mat2[i][j])
 			}
 		}
@@ -152,10 +161,7 @@ func TestDigitNotIn(t *testing.T) {
 func TestDelNode(t *testing.T) {
 	input := ".341528699.837645252.948371245.136986895.413737168.524857231.464938672.516249578."
 
-	mat = populateMat(input)
-	emptyCnt = countEmpty(mat)
-
-	emptyL, mat2 = getPossibleMat(mat)
+	PrepPmat(input)
 
 	currentNode := emptyL.Head
 
@@ -175,11 +181,11 @@ func TestIntArrEq(t *testing.T) {
 	arr2 := []int{1, 2, 3}
 	arr3 := []int{2, 3, 4}
 
-	if !l.IntArrayEquals(arr1, arr2) {
+	if !IntArrayEquals(arr1, arr2) {
 		t.Fatalf("Both arrays should be equal but not. %v == %v\n", arr1, arr2)
 	}
 
-	if l.IntArrayEquals(arr2, arr3) {
+	if IntArrayEquals(arr2, arr3) {
 		t.Fatalf("Both arrays should not be equal but are. %v != %v\n", arr2, arr3)
 	}
 }
@@ -325,11 +331,7 @@ func TestContainsPair(t *testing.T) {
 func TestRule1(t *testing.T) {
 
 	input := ".341528699.837645252.948371245.136986895.413737168.524857231.464938672.516249578."
-
-	mat = populateMat(input)
-	emptyCnt = countEmpty(mat)
-
-	emptyL, mat2 = getPossibleMat(mat)
+	PrepPmat(input)
 
 	matched, cnt := rule1()
 	if cnt != 9 {
@@ -353,48 +355,62 @@ func TestRule3(t *testing.T) {
 
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
 
-	ruleTest(t, input, 3, 51)
+	ruleTest(t, input, 3, 51, 20)
 
 }
 
 // looping rule3
 func TestRule3L(t *testing.T) {
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
-	mat = populateMat(input)
+	PrepPmat(input)
 
-	emptyCnt = countEmpty(mat)
-	emptyL, mat2 = getPossibleMat(mat)
+	totCnt := RuleLoop(rule3, "Hidden single")
 
-	ruleLoop(rule3, "Hidden single")
+	if totCnt != 51 {
+		t.Fatalf("Expected to find 51 but got %d counts.\n", totCnt)
+	}
 }
 
 func TestRule_3a(t *testing.T) {
 
 	input := "7..15..6991.37645.5.694.371..5.1.69.6.95.41.7.716.95...57.319.6.9386..1516..95..."
 
-	ruleTest(t, input, 3, 31)
+	ruleTest(t, input, 3, 31, 0)
 }
 
 func TestRule_3c(t *testing.T) {
 
 	input := "..78265.16.1395.47..5147.6.3..2.1...172.8.356...6.3..4....687..82.71.6.57..5324.."
 
-	ruleTest(t, input, 3, 36)
+	ruleTest(t, input, 3, 36, 0)
 }
 
 func TestRule_3d(t *testing.T) {
 
 	input := "4378265916813952472951478633..2.1978172.8.3569.8673124....687.282.71.6.57..532489"
 
-	ruleTest(t, input, 3, 16)
+	ruleTest(t, input, 3, 16, 0)
 }
 
 func TestRule_3e(t *testing.T) {
 
 	input := "43782659168139524729514786336.251978172.893569586731245.396871282971.635716532489"
 
-	ruleTest(t, input, 3, 4)
+	ruleTest(t, input, 3, 4, 0)
+}
 
+func TestRule_3f(t *testing.T) {
+	// test difficult3.txt
+
+	input := "14...3.......4...38.3.52.......2..977.6.9.4.545..6.......43.1.29...8.......6...39"
+
+	PrepPmat(input)
+
+	totCnt := RuleLoop(rule3, "Hidden single")
+
+	if totCnt != 29 {
+		t.Fatalf("Expected to find 29 but got %d counts.\n", totCnt)
+	}
 }
 
 // Rule 5: Naked Pairs
@@ -402,8 +418,37 @@ func TestRule5(t *testing.T) {
 
 	input := "142.73...597.462.3863.52...31852469772639.4.545976.32.6.54391.293128....2.461..39"
 
-	ruleTest(t, input, 5, 23)
+	ruleTest(t, input, 5, 23, 9)
 
+}
+
+func TestRule3n5(t *testing.T) {
+	// test difficult3.txt
+
+	input := "14...3.......4...38.3.52.......2..977.6.9.4.545..6.......43.1.29...8.......6...39"
+
+	PrepPmat(input)
+
+	totCnt := RuleLoop(rule3, "Hidden single")
+
+	if totCnt != 29 {
+		t.Fatalf("Expected to find 29 but got %d counts.\n", totCnt)
+	}
+
+	fmt.Println("Starting possible matrix for Rule 5.")
+	printPossibleMat()
+	input = "142.73...597.462.3863.52...31852469772639.4.545976.32.6.54391.293128....2.461..39"
+	ruleTest(t, input, 5, 23, 9)
+
+	cnt := RuleLoop(rule1, ruleTable[1])
+	if cnt != 23 {
+		t.Fatalf("Expected 23 but got %d\n", cnt)
+	}
+
+	if !checkSums(mat) {
+		t.Fatal("Expected to be solved")
+		printSudoku(mat)
+	}
 }
 
 // Rule 8: Hidden Pairs
@@ -411,22 +456,20 @@ func TestRule8(t *testing.T) {
 
 	input := "43782659168139524729514786336.251978172.893569586731245.396871282971.635716532489"
 
-	ruleTest(t, input, 3, 4)
+	ruleTest(t, input, 3, 4, 0)
 
 }
 
-func ruleTest(t *testing.T, input string, rule, empCnt int) {
+func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 	var (
-		desc string
+		count int
+		desc  string
 	)
-	mat = populateMat(input)
+	PrepPmat(input)
 
-	emptyCnt = countEmpty(mat)
 	if emptyCnt != empCnt {
 		t.Fatalf("Expected %d but got %d.\n", empCnt, emptyCnt)
 	}
-
-	emptyL, mat2 = getPossibleMat(mat)
 	if emptyL.CountNodes() != empCnt {
 		t.Fatalf("Expected %d nodes in empty list but got %d.\n", empCnt, emptyL.CountNodes())
 	}
@@ -437,7 +480,7 @@ func ruleTest(t *testing.T, input string, rule, empCnt int) {
 
 	switch rule {
 	case 3:
-		desc = "Hidden single"
+		desc = ruleTable[3]
 		matched, cnt := rule3()
 		digcnt := matched.CountNodes()
 
@@ -448,19 +491,25 @@ func ruleTest(t *testing.T, input string, rule, empCnt int) {
 			t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
 		}
 		matched.PrintResult(desc)
+		count = cnt
 	case 5:
-		desc = "Naked pairs"
+		desc = ruleTable[5]
 		matched, cnt := rule5()
 		fmt.Printf("Found: %s = %d.\n", desc, cnt)
 		matched.PrintResult(desc)
-		printPossibleMat()
+		count = cnt
 	case 8:
-		desc = "Hidden pairs"
+		desc = ruleTable[8]
 		matched, cnt := rule3()
 		fmt.Printf("Found: %s = %d.\n", desc, cnt)
 		matched.PrintResult(desc)
 	}
 
+	if numFound != 0 && numFound != count {
+		t.Fatalf("Expected to find %d but got %d counts.\n", numFound, count)
+	}
+
+	printPossibleMat()
 	printSudoku(mat)
 
 	if emptyCnt == 0 {

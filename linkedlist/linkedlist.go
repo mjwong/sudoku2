@@ -1,7 +1,7 @@
 package linkedlist
 
 import (
-	l "github.com/mjwong/sudoku2/lib"
+	. "github.com/mjwong/sudoku2/lib"
 	"gopkg.in/gookit/color.v1"
 )
 
@@ -45,6 +45,39 @@ func (p *LinkedList) AddCell(row, col int, arr []int) error {
 	return nil
 }
 
+func (p *LinkedList) AddNode(cells ...*Cell) error {
+	var currentCell *Cell
+
+	if p.Head == nil {
+		p.Head = cells[0]
+		cells[0].Prev = nil
+		currentCell = p.Head
+	} else {
+		currentCell = p.Head
+		for currentCell.Next != nil {
+			currentCell = currentCell.Next
+		}
+		currentCell.Next = cells[0]
+		cells[0].Prev = currentCell
+		currentCell = cells[0]
+	}
+
+	if len(cells) > 1 {
+		for i, v := range cells {
+			if i > 0 {
+				currentCell.Next = v
+				v.Prev = currentCell
+				currentCell = currentCell.Next
+				p.Last = v
+			}
+		}
+	} else {
+		p.Last = cells[0]
+	}
+
+	return nil
+}
+
 func (p *LinkedList) ShowAllEmptyCells() error {
 	currentCell := p.Head
 	if currentCell == nil {
@@ -82,7 +115,7 @@ func (p *LinkedList) GetNodeForCell(row, col int) *Cell {
 
 func (p *LinkedList) EraseDigitFromCell(row, col, dig int) {
 	node := p.GetNodeForCell(row, col)
-	node.Vals = l.EraseFromSlice(node.Vals, dig)
+	node.Vals = EraseFromSlice(node.Vals, dig)
 }
 
 func (p *LinkedList) InsNode(node *Cell) {
