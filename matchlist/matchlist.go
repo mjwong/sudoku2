@@ -12,20 +12,46 @@ type Idx struct {
 	Vals     []int
 }
 
-type Result struct {
+type rNode struct {
 	Arr  []Idx
-	Prev *Result
-	Next *Result
+	Prev *rNode
+	Next *rNode
 }
 
 type Matchlist struct {
-	Head        *Result
-	Last        *Result
-	CurrentCell *Result
+	Head        *rNode
+	Last        *rNode
+	CurrentCell *rNode
 }
 
-func (p *Matchlist) AddNode(arrIdx []Idx) error {
-	r := &Result{
+func (p *Matchlist) AddCell(node *ll.Cell, dig int) error {
+	r := &rNode{
+		Arr: []Idx{
+			{
+				Row:  node.Row,
+				Col:  node.Col,
+				Vals: []int{dig},
+			},
+		},
+	}
+
+	if p.Head == nil {
+		p.Head = r
+		r.Prev = nil
+	} else {
+		currNode := p.Head
+		for currNode.Next != nil {
+			currNode = currNode.Next
+		}
+		currNode.Next = r
+		r.Prev = currNode
+		p.Last = r
+	}
+	return nil
+}
+
+func (p *Matchlist) AddRNode(arrIdx []Idx) error {
+	r := &rNode{
 		Arr: arrIdx,
 	}
 
@@ -77,6 +103,25 @@ func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
 	return false
 }
 
+func (p *Matchlist) PrintResult(desc string) {
+	currNode := p.Head
+	for currNode != nil {
+		color.LightMagenta.Printf("%s: %v at [%d,%d]", desc, currNode.Arr[0].Vals,
+			currNode.Arr[0].Row, currNode.Arr[0].Col)
+		if len(currNode.Arr) > 1 {
+			for i, v := range currNode.Arr {
+				if i > 0 {
+					color.LightMagenta.Printf(", [%d,%d]", v.Row, v.Col)
+				}
+			}
+			color.LightMagenta.Println()
+		} else {
+			color.LightMagenta.Println()
+		}
+		currNode = currNode.Next
+	}
+}
+
 // accepts a variable no. of cells
 func AddIdx(arr []Idx, a ...*ll.Cell) []Idx {
 	for _, val := range a {
@@ -93,13 +138,4 @@ func AddIdx(arr []Idx, a ...*ll.Cell) []Idx {
 	}
 
 	return arr
-}
-
-func (p *Matchlist) PrintResult(desc string) {
-	currNode := p.Head
-	for currNode != nil {
-		color.LightMagenta.Printf("%s: %v at [%d,%d] and [%d,%d].\n", desc, currNode.Arr[0].Vals,
-			currNode.Arr[0].Row, currNode.Arr[0].Col, currNode.Arr[1].Row, currNode.Arr[1].Col)
-		currNode = currNode.Next
-	}
 }

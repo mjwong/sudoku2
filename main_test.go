@@ -10,15 +10,6 @@ import (
 	"gopkg.in/gookit/color.v1"
 )
 
-var (
-	ruleTable = map[int]string{
-		1: "Open single",
-		3: "Hidden single",
-		5: "Naked pair",
-		8: "Hidden pair",
-	}
-)
-
 func TestEmptyCount(t *testing.T) {
 
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
@@ -413,6 +404,20 @@ func TestRule_3f(t *testing.T) {
 	}
 }
 
+func TestRule_3g(t *testing.T) {
+	// test difficult4.txt
+
+	input := "....92....7..853.93...7.8..2...61.4..6.....7..9.82...1..8.5...79.271..3....43...."
+
+	PrepPmat(input)
+
+	totCnt := RuleLoop(rule3, "Hidden single")
+
+	if totCnt != 51 {
+		t.Fatalf("Expected to find 51 but got %d counts.\n", totCnt)
+	}
+}
+
 // Rule 5: Naked Pairs
 func TestRule5(t *testing.T) {
 
@@ -440,7 +445,7 @@ func TestRule3n5(t *testing.T) {
 	input = "142.73...597.462.3863.52...31852469772639.4.545976.32.6.54391.293128....2.461..39"
 	ruleTest(t, input, 5, 23, 9)
 
-	cnt := RuleLoop(rule1, ruleTable[1])
+	cnt := RuleLoop(rule1, RuleTable[1])
 	if cnt != 23 {
 		t.Fatalf("Expected 23 but got %d\n", cnt)
 	}
@@ -480,7 +485,7 @@ func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 
 	switch rule {
 	case 3:
-		desc = ruleTable[3]
+		desc = RuleTable[3]
 		matched, cnt := rule3()
 		digcnt := matched.CountNodes()
 
@@ -493,13 +498,13 @@ func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 		matched.PrintResult(desc)
 		count = cnt
 	case 5:
-		desc = ruleTable[5]
+		desc = RuleTable[5]
 		matched, cnt := rule5()
 		fmt.Printf("Found: %s = %d.\n", desc, cnt)
 		matched.PrintResult(desc)
 		count = cnt
 	case 8:
-		desc = ruleTable[8]
+		desc = RuleTable[8]
 		matched, cnt := rule3()
 		fmt.Printf("Found: %s = %d.\n", desc, cnt)
 		matched.PrintResult(desc)
