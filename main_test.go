@@ -343,7 +343,7 @@ func TestRule1(t *testing.T) {
 }
 
 func TestRule3(t *testing.T) {
-
+	// difficult1.txt
 	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
 
 	ruleTest(t, input, 3, 51, 20)
@@ -425,6 +425,14 @@ func TestRule5(t *testing.T) {
 
 	ruleTest(t, input, 5, 23, 9)
 
+}
+
+func TestRule5a(t *testing.T) {
+	// difficult1.txt
+	// naked pair (2,8) found in starting possibility matrix at cells [2,1] and [1,2] of block [0,0].
+	input := "...15....91..764..5.6.4.3........69.6..5.4..7.71........7.3.9.6..386..15....95..."
+
+	ruleTest(t, input, 5, 51, 1)
 }
 
 func TestRule3n5(t *testing.T) {

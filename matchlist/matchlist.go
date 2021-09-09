@@ -1,6 +1,7 @@
 package matchlist
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gookit/color"
@@ -106,17 +107,17 @@ func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
 func (p *Matchlist) PrintResult(desc string) {
 	currNode := p.Head
 	for currNode != nil {
-		color.LightMagenta.Printf("%s: %v at [%d,%d]", desc, currNode.Arr[0].Vals,
+		color.LightCyan.Printf("%s: %v at [%d,%d]", desc, currNode.Arr[0].Vals,
 			currNode.Arr[0].Row, currNode.Arr[0].Col)
 		if len(currNode.Arr) > 1 {
 			for i, v := range currNode.Arr {
 				if i > 0 {
-					color.LightMagenta.Printf(", [%d,%d]", v.Row, v.Col)
+					color.LightCyan.Printf(", [%d,%d]", v.Row, v.Col)
 				}
 			}
-			color.LightMagenta.Println()
+			fmt.Println()
 		} else {
-			color.LightMagenta.Println()
+			fmt.Println()
 		}
 		currNode = currNode.Next
 	}

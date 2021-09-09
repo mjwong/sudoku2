@@ -552,16 +552,72 @@ func eraseDigitsFromColOfPairs(row, col, row2 int, digits []int) bool {
 	return erased
 }
 
+// check block of possibility matrix
+func findDigitInBlkPair(mat2 Pmat, row, col, row2, col2 int, digits []int) bool {
+	startRow := row / SQ * SQ
+	startCol := col / SQ * SQ
+
+	for x := startRow; x < startRow+SQ; x++ {
+		for y := startCol; y < startCol+SQ; y++ {
+			if mat2[x][y] != nil && !(x == row && y == col) && !(x == row2 && y == col2) {
+				if *debugPtr {
+					fmt.Printf("Cell [%d][%d] = %v\n", x, y, mat2[x][y])
+				}
+				if ContainsMulti(mat2[x][y], digits) {
+
+					if *debugPtr {
+						fmt.Printf("Cell [%d,%d] contains digits of naked pair", x, y)
+					}
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// erase digit from row of possibility matrix in the case of naked pairs
+func eraseDigitsFromBlkOfPairs(row, col, row2, col2 int, digits []int) bool {
+	erased := false
+	startRow := row / SQ * SQ
+	startCol := col / SQ * SQ
+
+	for x := startRow; x < startRow+SQ; x++ {
+		for y := startCol; y < startCol+SQ; y++ {
+			if mat2[x][y] != nil && !(x == row && y == col) && !(x == row2 && y == col2) {
+
+				if Contains(mat2[x][y], digits[0]) {
+					mat2[x][y] = EraseFromSlice(mat2[x][y], digits[0])
+					emptyL.EraseDigitFromCell(x, y, digits[0])
+					color.LightMagenta.Printf("Found naked pair (%d,%d) in blk [%d,%d]. Deleted %d from [%d,%d]\n",
+						digits[0], digits[1], row/SQ, col/SQ, digits[0], x, y)
+					erased = true
+				}
+
+				if Contains(mat2[x][y], digits[1]) {
+					mat2[x][y] = EraseFromSlice(mat2[x][y], digits[1])
+					emptyL.EraseDigitFromCell(x, y, digits[1])
+					color.LightMagenta.Printf("Found naked pair (%d,%d) in blk [%d,%d]. Deleted %d from [%d,%d]\n",
+						digits[0], digits[1], row/SQ, col/SQ, digits[1], x, y)
+					erased = true
+				}
+			}
+		}
+	}
+
+	return erased
+}
+
 // *******************************************************************************************************
 // *                                     end of funcs for naked pairs                                    *
 // *******************************************************************************************************
 
 // erase digit from row of possibility matrix
 func eraseDigitFromRow(row, col, dig int) bool {
-	const ncols = 9
 	erased := false
 
-	for c := 0; c < ncols; c++ {
+	for c := 0; c < N; c++ {
 		if mat2[row][c] != nil && c != col {
 			if Contains(mat2[row][c], dig) {
 				mat2[row][c] = EraseFromSlice(mat2[row][c], dig)
@@ -576,10 +632,9 @@ func eraseDigitFromRow(row, col, dig int) bool {
 }
 
 func eraseDigitFromCol(row, col, dig int) bool {
-	const ncols = 9
 	erased := false
 
-	for r := 0; r < ncols; r++ {
+	for r := 0; r < N; r++ {
 		if mat2[r][col] != nil && r != row {
 			if Contains(mat2[r][col], dig) {
 				mat2[r][col] = EraseFromSlice(mat2[r][col], dig) // remove from possibility mat
@@ -594,17 +649,13 @@ func eraseDigitFromCol(row, col, dig int) bool {
 }
 
 func eraseDigitFromBlk(row, col, dig int) bool {
-	const (
-		scols = 3
-		ncols = 9
-	)
 	erased := false
 
-	startRow := row / scols * scols
-	startCol := col / scols * scols
+	startRow := row / SQ * SQ
+	startCol := col / SQ * SQ
 
-	for x := startRow; x < startRow+scols; x++ {
-		for y := startCol; y < startCol+scols; y++ {
+	for x := startRow; x < startRow+SQ; x++ {
+		for y := startCol; y < startCol+SQ; y++ {
 			if mat2[x][y] != nil && x != row && y != col {
 				if Contains(mat2[x][y], dig) {
 					mat2[x][y] = EraseFromSlice(mat2[x][y], dig)
@@ -831,11 +882,12 @@ func rule5() (*Matchlist, int) {
 		count                int
 		twoElem              []int
 		foundNakedPairs      bool
-		inRow, inCol         bool
+		inRow, inCol, inBlk  bool
 		secondNode           *Cell
-		matched              *Matchlist
+		matched, matchedBlk  *Matchlist
 	)
 	matched = &Matchlist{}
+	matchedBlk = &Matchlist{}
 
 	foundNakedPairs = true
 
@@ -871,9 +923,11 @@ func rule5() (*Matchlist, int) {
 							arr := AddIdx(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
-								matched.AddRNode(arr)
+								if *debugPtr {
+									fmt.Printf("Row %d\n", row)
+								}
 
-								fmt.Printf("Row %d\n", row)
+								matched.AddRNode(arr)
 								inRow = findDigitInRowPair(mat2, row, col, col2, twoElem)
 								if inRow {
 									if *debugPtr {
@@ -902,9 +956,11 @@ func rule5() (*Matchlist, int) {
 							arr := AddIdx(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
-								matched.AddRNode(arr)
+								if *debugPtr {
+									fmt.Printf("Col %d\n", col)
+								}
 
-								fmt.Printf("Col %d\n", col)
+								matched.AddRNode(arr)
 								inCol = findDigitInColPair(mat2, row, col, row2, twoElem)
 								if inCol {
 									if *debugPtr {
@@ -917,6 +973,68 @@ func rule5() (*Matchlist, int) {
 								break
 							}
 						}
+					}
+
+					// check blk
+					startRow := row / SQ * SQ
+					startCol := col / SQ * SQ
+					emptyCntBlk := emptyL.CountNodes()
+
+					if *debugPtr {
+						fmt.Printf("Finding 2nd pair [%d,%d] cell [%d,%d]\n", twoElem[0], twoElem[1], row, col)
+					}
+
+					for x := startRow; x < startRow+SQ; x++ {
+						for y := startCol; y < startCol+SQ; y++ {
+							if *debugPtr {
+								fmt.Printf("Blk [%d,%d]: cell [%d,%d]\n", row/SQ, col/SQ, x, y)
+							}
+
+							if IntArrayEquals(mat2[x][y], twoElem) && !(x == row && y == col) {
+								row2 = x
+								col2 = y
+
+								if *debugPtr {
+									color.Magenta.Printf("Found naked pair in blk [%d,%d], in cells [%d,%d] and [%d,%d].\n",
+										row/SQ, col/SQ, row, col, row2, col2)
+								}
+
+								secondNode = emptyL.GetNodeForCell(row2, col2)
+
+								if *debugPtr {
+									fmt.Printf("Found naked pair: %d,%d. x,y = %d,%d.\n",
+										twoElem[0], twoElem[1], row2, col2)
+								}
+
+								arr := AddIdx(nil, currNode, secondNode)
+
+								if !matchedBlk.ContainsPair(arr) {
+									matchedBlk.AddRNode(arr)
+
+									if *debugPtr {
+										fmt.Printf("Blk [%d,%d]\n", row/SQ, col/SQ)
+									}
+
+									inBlk = findDigitInBlkPair(mat2, row, col, row2, col2, twoElem)
+									if inBlk {
+										if *debugPtr {
+											fmt.Printf("Found digits of pairs in blk [%d,%d].\n", row/SQ, col/SQ)
+											printPossibleMat()
+										}
+
+										eraseDigitsFromBlkOfPairs(row, col, row2, col2, twoElem)
+									}
+									foundNakedPairs = true
+									count++
+									break
+								}
+
+							}
+						}
+					}
+
+					if emptyL.CountNodes() < emptyCntBlk {
+						color.LightMagenta.Printf("Deleted cells after checking block: %d\n", emptyCntBlk-emptyL.CountNodes())
 					}
 				}
 
