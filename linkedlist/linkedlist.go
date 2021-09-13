@@ -102,6 +102,16 @@ func (p *LinkedList) CountNodes() int {
 	return count
 }
 
+func (p *LinkedList) CountElem() int {
+	count := 0
+	currN := p.Head
+	for currN != nil {
+		count += len(currN.Vals)
+		currN = currN.Next
+	}
+	return count
+}
+
 func (p *LinkedList) GetNodeForCell(row, col int) *Cell {
 	currN := p.Head
 	for currN != nil {
