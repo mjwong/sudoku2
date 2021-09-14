@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/gookit/color"
-	ll "github.com/mjwong/sudoku2/linkedlist"
+	. "github.com/mjwong/sudoku2/linkedlist"
 )
 
 type Idx struct {
@@ -25,7 +25,7 @@ type Matchlist struct {
 	CurrentCell *rNode
 }
 
-func (p *Matchlist) AddCell(node *ll.Cell, dig int) error {
+func (p *Matchlist) AddCell(node *Cell, dig int) error {
 	r := &rNode{
 		Arr: []Idx{
 			{
@@ -124,7 +124,7 @@ func (p *Matchlist) PrintResult(desc string) {
 }
 
 // accepts a variable no. of cells
-func AddIdx(arr []Idx, a ...*ll.Cell) []Idx {
+func AddIdx(arr []Idx, a ...*Cell) []Idx {
 	for _, val := range a {
 		newIdx := Idx{
 			Row:  val.Row,

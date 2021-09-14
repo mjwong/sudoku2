@@ -161,3 +161,45 @@ func (p *LinkedList) PrintResult(desc string) {
 		currNode = currNode.Next
 	}
 }
+
+func GetPossibleMat(mat Intmat) (*LinkedList, Pmat) {
+	const (
+		ncols = 9
+	)
+	var (
+		mat2                Pmat
+		emptyL              *LinkedList
+		inRow, inCol, inSqu bool
+		valList             []int
+	)
+
+	emptyL = CreatelinkedList()
+
+	// initialize possible mat
+	for i := 0; i < ncols; i++ {
+		for j := 0; j < ncols; j++ {
+			mat2[i][j] = nil
+		}
+	}
+
+	for i := 0; i < ncols; i++ {
+		for j := 0; j < ncols; j++ {
+			valList = nil
+
+			if mat[i][j] == 0 {
+				for p := 1; p < ncols+1; p++ {
+					inRow = Contains(GetArrForRow(mat, i), p)
+					inCol = Contains(GetArrForCol(mat, j), p)
+					inSqu = Contains(GetArrForSqu(mat, i, j), p)
+
+					if !inRow && !inCol && !inSqu {
+						mat2[i][j] = append(mat2[i][j], p)
+						valList = append(valList, p)
+					}
+				}
+				emptyL.AddCell(i, j, valList)
+			}
+		}
+	}
+	return emptyL, mat2
+}

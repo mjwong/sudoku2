@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	. "github.com/mjwong/sudoku2/lib"
-	ll "github.com/mjwong/sudoku2/linkedlist"
+	. "github.com/mjwong/sudoku2/linkedlist"
 	lp "github.com/mjwong/sudoku2/linkedlistpair"
 	"gopkg.in/gookit/color.v1"
 )
@@ -83,7 +83,7 @@ func TestGetPossibleMat(t *testing.T) {
 
 	emptyL, mat2 = GetPossibleMat(mat)
 
-	printPossibleMat()
+	PrintPossibleMat(mat2)
 
 	currNode := emptyL.Head
 	if currNode == nil {
@@ -136,15 +136,15 @@ func TestDigitNotIn(t *testing.T) {
 
 	// digit 1 is found hidden in cell [3,4].
 	// search for digit 1; should find in row 4 and blk [1,1] but not in col 5.
-	if !findDigitInRow(mat2, 3, 4, 1) {
+	if !FindDigitInRow(debugPtr, mat2, 3, 4, 1) {
 		t.Fatalf("Digit should be in row 3.")
 	}
 
-	if findDigitInCol(mat2, 3, 4, 1) {
+	if FindDigitInCol(debugPtr, mat2, 3, 4, 1) {
 		t.Fatalf("Digit should not be in column 4.")
 	}
 
-	if !findDigitInBlk(mat2, 3, 4, 1) {
+	if !FindDigitInBlk(debugPtr, mat2, 3, 4, 1) {
 		t.Fatalf("Digit should be in block [1,1].")
 	}
 }
@@ -183,12 +183,12 @@ func TestIntArrEq(t *testing.T) {
 
 func TestCountPairs(t *testing.T) {
 	node1 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  4,
 			Col:  5,
 			Vals: []int{2, 8},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  6,
 			Col:  7,
 			Vals: []int{2, 8},
@@ -196,12 +196,12 @@ func TestCountPairs(t *testing.T) {
 	}
 
 	node2 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  1,
 			Col:  3,
 			Vals: []int{2, 4},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  4,
 			Col:  8,
 			Vals: []int{2, 4},
@@ -209,12 +209,12 @@ func TestCountPairs(t *testing.T) {
 	}
 
 	node3 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  1,
 			Col:  2,
 			Vals: []int{2, 8},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  2,
 			Col:  3,
 			Vals: []int{2, 8},
@@ -256,12 +256,12 @@ func TestCountPairs(t *testing.T) {
 
 func TestContainsPair(t *testing.T) {
 	node1 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  4,
 			Col:  5,
 			Vals: []int{2, 8},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  6,
 			Col:  7,
 			Vals: []int{2, 8},
@@ -269,12 +269,12 @@ func TestContainsPair(t *testing.T) {
 	}
 
 	node2 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  1,
 			Col:  3,
 			Vals: []int{2, 4},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  4,
 			Col:  8,
 			Vals: []int{2, 4},
@@ -282,12 +282,12 @@ func TestContainsPair(t *testing.T) {
 	}
 
 	node3 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  4,
 			Col:  5,
 			Vals: []int{2, 8},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  6,
 			Col:  7,
 			Vals: []int{2, 8},
@@ -295,12 +295,12 @@ func TestContainsPair(t *testing.T) {
 	}
 
 	node4 := &lp.Pair{
-		A: &ll.Cell{
+		A: &Cell{
 			Row:  6,
 			Col:  7,
 			Vals: []int{2, 8},
 		},
-		B: &ll.Cell{
+		B: &Cell{
 			Row:  4,
 			Col:  5,
 			Vals: []int{2, 8},
@@ -449,7 +449,7 @@ func TestRule3n5(t *testing.T) {
 	}
 
 	fmt.Println("Starting possible matrix for Rule 5.")
-	printPossibleMat()
+	PrintPossibleMat(mat2)
 	input = "142.73...597.462.3863.52...31852469772639.4.545976.32.6.54391.293128....2.461..39"
 	ruleTest(t, input, 5, 23, 9)
 
@@ -460,12 +460,13 @@ func TestRule3n5(t *testing.T) {
 
 	if !CheckSums(mat) {
 		t.Fatal("Expected to be solved")
-		printSudoku(mat)
+		PrintSudoku(mat)
 	}
 }
 
 func TestRule135(t *testing.T) {
 	// difficult5.txt
+	ruleCnt := map[int]int{}
 
 	input := ".4...8...7.....8...3..16..49...6.38..6..3..9..23.4...64..12..3...2.....5...3...1."
 	PrepPmat(input)
@@ -476,26 +477,24 @@ func TestRule135(t *testing.T) {
 	}
 	fmt.Printf("Starting empty count: %d\n", startCnt)
 
-	cnt1 := RuleLoop(rule1, RuleTable[1], Zero)
-	cnt3 := RuleLoop(rule3, RuleTable[3], Zero)
+	ruleCnt[1] = RuleLoop(rule1, RuleTable[1], Zero)
+	ruleCnt[3] = RuleLoop(rule3, RuleTable[3], Zero)
 	cntBefore := emptyL.CountElem()
-	cnt5 := RuleLoop(rule5, RuleTable[5], SameCnt)
+	ruleCnt[5] = RuleLoop(rule5, RuleTable[5], SameCnt)
 	cntAfter := emptyL.CountElem()
 
-	if cnt3 != 11 {
-		t.Fatalf("Expect to find 11 hidden singles but got %d.\n", cnt3)
+	if ruleCnt[3] != 11 {
+		t.Fatalf("Expect to find 11 hidden singles but got %d.\n", ruleCnt[3])
 	}
 
-	fmt.Printf("Rule 1: Found %2d open singles\n", cnt1)
-	fmt.Printf("Rule 3: Found %2d hidden singles\n", cnt3)
-	fmt.Printf("Rule 5: Found %2d naked pairs\n", cnt5)
+	PrintFound([]int{1, 3, 5}, ruleCnt)
 	fmt.Printf("Count before and after Rule 5: %d, %d.\n", cntBefore, cntAfter)
 	fmt.Printf("Empty cells : %2d\n", emptyL.CountNodes())
 
 	if emptyL.CountNodes() == 0 {
 		if !CheckSums(mat) {
 			t.Fatal("Expected to be solved")
-			printSudoku(mat)
+			PrintSudoku(mat)
 		}
 	}
 }
@@ -531,7 +530,7 @@ func TestRule_135a(t *testing.T) {
 	if emptyL.CountNodes() == 0 {
 		if !CheckSums(mat) {
 			t.Fatal("Expected to be solved")
-			printSudoku(mat)
+			PrintSudoku(mat)
 		}
 	}
 }
@@ -587,7 +586,7 @@ func TestRule_135c(t *testing.T) {
 	if emptyL.CountNodes() == 0 {
 		if !CheckSums(mat) {
 			t.Fatal("Expected to be solved")
-			printSudoku(mat)
+			PrintSudoku(mat)
 		}
 	}
 }
@@ -615,8 +614,8 @@ func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 		t.Fatalf("Expected %d nodes in empty list but got %d.\n", empCnt, emptyL.CountNodes())
 	}
 
-	printPossibleMat()
-	printSudoku(mat)
+	PrintPossibleMat(mat2)
+	PrintSudoku(mat)
 	fmt.Printf("Starting empty cells = %d\n", emptyCnt)
 
 	switch rule {
@@ -625,7 +624,7 @@ func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 		matched, cnt := rule3()
 		digcnt := matched.CountNodes()
 
-		printPossibleMat()
+		PrintPossibleMat(mat2)
 
 		color.LightMagenta.Printf("Found: %d digits.\n", cnt)
 		if digcnt != cnt {
@@ -650,12 +649,129 @@ func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 		t.Fatalf("Expected to find %d but got %d counts.\n", numFound, count)
 	}
 
-	printPossibleMat()
-	printSudoku(mat)
+	PrintPossibleMat(mat2)
+	PrintSudoku(mat)
 
 	if emptyCnt == 0 {
 		color.Magenta.Println("Finished!")
 	} else {
 		fmt.Printf("Empty cells = %d\n", emptyCnt)
+	}
+}
+
+func TestCheckBlkForDigit(t *testing.T) {
+
+	pm := Pmat{}
+	pm[0][0] = []int{1, 2, 5, 6}
+	pm[0][2] = []int{1, 5, 6, 9}
+	pm[1][1] = []int{5, 9}
+	pm[1][2] = []int{1, 5, 6, 9}
+	pm[2][0] = []int{2, 5, 8}
+	pm[2][2] = []int{5, 8, 9}
+
+	arr, inBlk := checkBlkForDigit(pm, 0, 0, 2, 2)
+	if !inBlk {
+		t.Fatalf("Should find 2 same digits in blk but found %d.\n", len(arr))
+	}
+
+	arr, inBlk = checkBlkForDigit(pm, 0, 0, 5, 2)
+	if inBlk {
+		t.Fatalf("Should not find 2 same digits in blk but found %d.\n", len(arr))
+	}
+}
+
+func TestEraseDigitFromRowMulti(t *testing.T) {
+
+	mat2 = Pmat{}
+	mat2[0][0] = []int{1, 2, 5, 6}
+	mat2[0][2] = []int{1, 5, 6, 9}
+	mat2[0][3] = []int{2, 5, 7, 9}
+	mat2[0][4] = []int{5, 7, 9}
+	mat2[0][6] = []int{1, 2, 5, 6, 7, 9}
+	mat2[0][7] = []int{2, 5, 6, 7}
+
+	emptyL = CreatelinkedList()
+	emptyL.AddCell(0, 6, []int{1, 2, 5, 6, 7, 9})
+	emptyL.AddCell(0, 7, []int{2, 5, 6, 7})
+
+	PrintPossibleMat(mat2)
+
+	startCnt := CountElemPosMat(mat2)
+
+	eraCnt, erased := eraseDigitFromRowMulti(0, 2, []int{0, 3})
+
+	endCnt := CountElemPosMat(mat2)
+
+	if !erased {
+		t.Fatal("Should be erased but not.\n")
+	}
+
+	if eraCnt != 2 {
+		t.Fatalf("2 counts of digit 2 should be erased but got %d.\n", eraCnt)
+	}
+
+	if Contains(mat2[0][6], 2) {
+		t.Fatal("Possibility matrix cell [0,6] should not contain 2.\n")
+	}
+
+	if Contains(mat2[0][7], 2) {
+		t.Fatal("Possibility matrix cell [0,7] should not contain 2.\n")
+	}
+
+	if (startCnt - endCnt) != 2 {
+		t.Fatalf("Should have erased 2 values but got %d.\n", startCnt-endCnt)
+	}
+}
+
+func TestRule20(t *testing.T) {
+	mat2 = Pmat{}
+	mat2[0][0] = []int{1, 2, 5, 6}
+	mat2[0][2] = []int{1, 5, 6, 9}
+	mat2[0][3] = []int{2, 5, 7, 9}
+	mat2[0][4] = []int{5, 7, 9}
+	mat2[0][6] = []int{1, 2, 5, 6, 7, 9}
+	mat2[0][7] = []int{2, 5, 6, 7}
+	mat2[2][0] = []int{2, 5, 8}
+	mat2[2][2] = []int{5, 8, 9}
+	mat2[2][3] = []int{2, 5, 7, 9}
+	mat2[2][6] = []int{2, 5, 7, 9}
+	mat2[2][7] = []int{2, 5, 7}
+
+	emptyL = CreatelinkedList()
+	emptyL.AddCell(0, 6, []int{1, 2, 5, 6, 7, 9})
+	emptyL.AddCell(0, 7, []int{2, 5, 6, 7})
+	emptyL.AddCell(2, 6, []int{2, 5, 7, 9})
+	emptyL.AddCell(2, 7, []int{2, 5, 7})
+
+	PrintPossibleMat(mat2)
+
+	startCnt := CountElemPosMat(mat2)
+
+	_, cnt := rule20()
+
+	endCnt := CountElemPosMat(mat2)
+
+	if cnt != 1 {
+		t.Fatal("Should have found X-wing but not.\n")
+	}
+
+	if Contains(mat2[0][6], 2) {
+		t.Fatal("Possibility matrix cell [0,6] should not contain 2.\n")
+	}
+
+	if Contains(mat2[0][7], 2) {
+		t.Fatal("Possibility matrix cell [0,7] should not contain 2.\n")
+	}
+
+	if Contains(mat2[2][6], 2) {
+		t.Fatal("Possibility matrix cell [2,6] should not contain 2.\n")
+	}
+
+	if Contains(mat2[2][7], 2) {
+		t.Fatal("Possibility matrix cell [2,7] should not contain 2.\n")
+	}
+
+	if (startCnt - endCnt) != 4 {
+		t.Fatalf("Should have erased 4 values but got %d.\n", startCnt-endCnt)
 	}
 }
