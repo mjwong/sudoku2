@@ -452,6 +452,10 @@ func eraseDigitFromColMulti(col, dig int, rows []int) (int, bool) {
 					emptyL.EraseDigitFromCell(r, col, dig)
 					erased = true
 					count++
+
+					if *debugPtr {
+						color.LightRed.Printf("Erased digit %d from Cell [%d,%d].\n", dig, r, col)
+					}
 				}
 			}
 		}
@@ -1034,9 +1038,11 @@ func rule20() (*Matchlist, int) {
 		inBlk      bool
 		arrC       []Coord
 		matched    *Matchlist
+		foundList  *Matchlist
 	)
 
 	matched = &Matchlist{}
+	foundList = &Matchlist{}
 	foundXWing = true
 
 	for dig := 1; dig <= N; dig++ {
@@ -1061,13 +1067,13 @@ func rule20() (*Matchlist, int) {
 							}
 
 							// Are they in the same row?
-							foundXWing = checkSameRowXwing(bi, bj, dig, arrC, inBlk)
+							foundList, foundXWing = checkSameRowXwing(bi, bj, dig, arrC, inBlk, foundList)
 							if foundXWing {
 								count++
 							}
 
 							// Are they in the same column?
-							foundXWing = checkSameColXwing(bi, bj, dig, arrC, inBlk)
+							foundList, foundXWing = checkSameColXwing(bi, bj, dig, arrC, inBlk, foundList)
 							if foundXWing {
 								count++
 							}
@@ -1081,7 +1087,7 @@ func rule20() (*Matchlist, int) {
 	return matched, count
 }
 
-func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
+func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
 	blkListi := []int{}
 	foundXWing := false
 
@@ -1114,9 +1120,19 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
 					if (colXw1 == colXw3 || colXw1 == colXw4) &&
 						(colXw2 == colXw3 || colXw2 == colXw4) {
 
+						arr := []Idx{}
+						arr = append(arr, Idx{Row: rowXw1, Col: colXw1, Vals: []int{dig}})
+						arr = append(arr, Idx{Row: rowXw2, Col: colXw2, Vals: []int{dig}})
+						arr = append(arr, Idx{Row: rowXw3, Col: colXw3, Vals: []int{dig}})
+						arr = append(arr, Idx{Row: rowXw4, Col: colXw4, Vals: []int{dig}})
+						if !foundList.ContainsXwing(arr) {
+							foundList.AddRNode(arr)
+						}
+
 						if *debugPtr {
 							color.LightYellow.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
 								dig, rowXw1, colXw1, rowXw2, colXw2, rowXw3, colXw3, rowXw4, colXw4)
+							PrintPossibleMat(mat2)
 						}
 
 						blkListi = append(blkListi, bi2)
@@ -1133,7 +1149,7 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
 							for r := 0; r < N; r++ {
 								if r != rowXw1 && r != rowXw2 && r != rowXw3 && r != rowXw4 {
 									// erase digit from this cell
-									eraCnt, erased := eraseDigitFromColMulti(r, dig, []int{colXw1, colXw2, colXw3, colXw4})
+									eraCnt, erased := eraseDigitFromColMulti(c, dig, []int{rowXw1, rowXw2, rowXw3, rowXw4})
 									if eraCnt > 0 {
 										foundXWing = true
 									}
@@ -1208,10 +1224,10 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
 			}
 		}
 	} // end of same rows
-	return foundXWing
+	return foundList, foundXWing
 }
 
-func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
+func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
 	blkListj := []int{} // col blocks
 	foundXWing := false
 
@@ -1245,10 +1261,20 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
 					if (rowXw1 == rowXw3 || rowXw1 == rowXw4) &&
 						(rowXw2 == rowXw3 || rowXw2 == rowXw4) {
 
+						arr := []Idx{}
+						arr = append(arr, Idx{Row: rowXw1, Col: colXw1, Vals: []int{dig}})
+						arr = append(arr, Idx{Row: rowXw2, Col: colXw2, Vals: []int{dig}})
+						arr = append(arr, Idx{Row: rowXw3, Col: colXw3, Vals: []int{dig}})
+						arr = append(arr, Idx{Row: rowXw4, Col: colXw4, Vals: []int{dig}})
+						if !foundList.ContainsXwing(arr) {
+							foundList.AddRNode(arr)
+						}
+
 						if inBlk2 { // found exactly 2 same digits in second block
 							if *debugPtr {
 								color.LightYellow.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
 									dig, rowXw1, colXw1, rowXw2, colXw2, rowXw3, colXw3, rowXw4, colXw4)
+								PrintPossibleMat(mat2)
 							}
 							blkListj = append(blkListj, bj2)
 							rowList := []int{}
@@ -1340,7 +1366,7 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool) bool {
 			}
 		}
 	} // end of same col
-	return foundXWing
+	return foundList, foundXWing
 }
 
 func checkBlkForDigit(m Pmat, bx, by, dig, occurence int) ([]Coord, bool) {

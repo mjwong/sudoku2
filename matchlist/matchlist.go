@@ -104,6 +104,30 @@ func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
 	return false
 }
 
+func (p *Matchlist) ContainsXwing(arrIdx []Idx) bool {
+	cNode := p.Head
+
+	if len(arrIdx) != 4 {
+		log.Fatal("Does not contain 4 cells of the X-wing")
+	}
+
+	for cNode != nil {
+		count := 0
+		for _, v := range cNode.Arr {
+			for _, w := range arrIdx {
+				if v.Row == w.Row && v.Col == w.Col {
+					count++
+				}
+			}
+		}
+		if count == 4 {
+			return true
+		}
+		cNode = cNode.Next
+	}
+	return false
+}
+
 func (p *Matchlist) PrintResult(desc string) {
 	currNode := p.Head
 	for currNode != nil {

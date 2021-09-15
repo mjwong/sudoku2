@@ -7,6 +7,7 @@ import (
 	. "github.com/mjwong/sudoku2/lib"
 	. "github.com/mjwong/sudoku2/linkedlist"
 	lp "github.com/mjwong/sudoku2/linkedlistpair"
+	. "github.com/mjwong/sudoku2/matchlist"
 	"gopkg.in/gookit/color.v1"
 )
 
@@ -720,6 +721,53 @@ func TestEraseDigitFromRowMulti(t *testing.T) {
 
 	if (startCnt - endCnt) != 2 {
 		t.Fatalf("Should have erased 2 values but got %d.\n", startCnt-endCnt)
+	}
+}
+
+func TestContainsXwing(t *testing.T) {
+
+	arr := []Idx{
+		Idx{Row: 1, Col: 2, Vals: []int{1, 2, 5}},
+		Idx{Row: 2, Col: 3, Vals: []int{2, 3, 6}},
+		Idx{Row: 3, Col: 4, Vals: []int{2, 4, 7}},
+		Idx{Row: 4, Col: 5, Vals: []int{3, 5, 9}},
+	}
+
+	arr2 := []Idx{
+		Idx{Row: 5, Col: 6, Vals: []int{1, 2, 5}},
+		Idx{Row: 6, Col: 8, Vals: []int{2, 3, 6}},
+		Idx{Row: 3, Col: 4, Vals: []int{2, 4, 7}},
+		Idx{Row: 4, Col: 5, Vals: []int{3, 5, 9}},
+	}
+
+	arr3 := []Idx{
+		Idx{Row: 1, Col: 2, Vals: []int{1, 2, 5}},
+		Idx{Row: 2, Col: 3, Vals: []int{2, 3, 6}},
+		Idx{Row: 3, Col: 4, Vals: []int{2, 4, 7}},
+		Idx{Row: 4, Col: 5, Vals: []int{3, 5, 9}},
+	}
+
+	arr4 := []Idx{
+		Idx{Row: 6, Col: 2, Vals: []int{1, 2, 5}},
+		Idx{Row: 7, Col: 9, Vals: []int{2, 3, 6}},
+		Idx{Row: 1, Col: 3, Vals: []int{2, 4, 7}},
+		Idx{Row: 2, Col: 7, Vals: []int{3, 5, 9}},
+	}
+
+	ml := &Matchlist{}
+	ml.AddRNode(arr)
+	ml.AddRNode(arr2)
+
+	currNode := ml.Head
+	for currNode != nil {
+		if !ml.ContainsXwing(arr3) {
+			t.Fatal("Should contain a X-wing but not.")
+		}
+
+		if ml.ContainsXwing(arr4) {
+			t.Fatal("Should notcontain a X-wing but it did.")
+		}
+		currNode = currNode.Next
 	}
 }
 
