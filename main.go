@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	. "github.com/mjwong/sudoku2/lib"
@@ -28,16 +29,23 @@ var (
 	mat2     Pmat   // matrix with possible values in empty cells
 	mat3     Intmat // guessed matrix
 	emptyL   *LinkedList
-	debugPtr *bool = flag.Bool("debug", false, "verbose debug mode")
-	prtLLPtr *bool = flag.Bool("prtLL", false, "print the linked list of empty cells")
-	rule     *int  = flag.Int("r", 0, "The deffault is 0, which will iterate matrix using linked list.")
+	debugPtr *bool   = flag.Bool("debug", false, "verbose debug mode")
+	prtLLPtr *bool   = flag.Bool("prtLL", false, "print the linked list of empty cells")
+	verbose  *bool   = flag.Bool("v", false, "Print if the digit(s) are found")
+	rule     *int    = flag.Int("r", 0, "The deffault is 0, which will iterate matrix using linked list.")
+	fnName   *string = flag.String("f", "", "Debug the specified function.")
 
 	RuleTable = map[int]string{
-		1:  "Open singles",
+		1:  "Open cell",
+		2:  "Lone singles",
 		3:  "Hidden singles",
+		4:  "Omission",
 		5:  "Naked pairs",
 		6:  "Naked triplets",
+		7:  "Naked quads",
 		8:  "Hidden pairs",
+		9:  "Hidden triplets",
+		10: "Hidden quads",
 		20: "X-wings",
 	}
 )
@@ -48,6 +56,7 @@ func main() {
 		elapsed time.Duration
 	)
 	flag.Parse()
+	fmt.Printf("Debug func: %v\n", *fnName)
 
 	mat = PopulateMat(ReadInput())
 	emptyCnt = CountEmpty(mat)
@@ -218,6 +227,18 @@ func PrintFound(ruleList []int, ruleCounts map[int]int) {
 	}
 }
 
+func DebugFn(skip int) bool {
+	fname := strings.Trim(FuncName(skip), "main.")
+
+	if *fnName == "" {
+		return false
+	} else if *debugPtr {
+		return true
+	} else {
+		return *fnName == fname
+	}
+}
+
 func PrepPmat(input string) {
 	mat = PopulateMat(input)
 	emptyCnt = CountEmpty(mat)
@@ -260,17 +281,23 @@ func eraseDigitsFromRowOfPairs(row, col, col2 int, digits []int) bool {
 			if Contains(mat2[row][c], digits[0]) {
 				mat2[row][c] = EraseFromSlice(mat2[row][c], digits[0])
 				emptyL.EraseDigitFromCell(row, c, digits[0])
-				color.LightMagenta.Printf("Found naked pair (%d,%d) in row %d. Deleted %d from [%d,%d]\n",
-					digits[0], digits[1], row, digits[0], row, c)
 				erased = true
+
+				if *verbose {
+					color.LightMagenta.Printf("Found naked pair (%d,%d) in row %d. Deleted %d from [%d,%d]\n",
+						digits[0], digits[1], row, digits[0], row, c)
+				}
 			}
 
 			if Contains(mat2[row][c], digits[1]) {
 				mat2[row][c] = EraseFromSlice(mat2[row][c], digits[1])
 				emptyL.EraseDigitFromCell(row, c, digits[1])
-				color.LightMagenta.Printf("Found naked pair (%d,%d) in row %d. Deleted %d from [%d,%d]\n",
-					digits[0], digits[1], row, digits[1], row, c)
 				erased = true
+
+				if *verbose {
+					color.LightMagenta.Printf("Found naked pair (%d,%d) in row %d. Deleted %d from [%d,%d]\n",
+						digits[0], digits[1], row, digits[1], row, c)
+				}
 			}
 		}
 	}
@@ -287,17 +314,23 @@ func eraseDigitsFromColOfPairs(row, col, row2 int, digits []int) bool {
 			if Contains(mat2[r][col], digits[0]) {
 				mat2[r][col] = EraseFromSlice(mat2[r][col], digits[0])
 				emptyL.EraseDigitFromCell(r, col, digits[0])
-				color.LightMagenta.Printf("Found naked pair (%d,%d) in col %d. Deleted %d from [%d,%d]\n",
-					digits[0], digits[1], col, digits[0], r, col)
 				erased = true
+
+				if *verbose {
+					color.LightMagenta.Printf("Found naked pair (%d,%d) in col %d. Deleted %d from [%d,%d]\n",
+						digits[0], digits[1], col, digits[0], r, col)
+				}
 			}
 
 			if Contains(mat2[r][col], digits[1]) {
 				mat2[r][col] = EraseFromSlice(mat2[r][col], digits[1])
 				emptyL.EraseDigitFromCell(r, col, digits[1])
-				color.LightMagenta.Printf("Found naked pair (%d,%d) in col %d. Deleted %d from [%d,%d]\n",
-					digits[0], digits[1], col, digits[1], r, col)
 				erased = true
+
+				if *verbose {
+					color.LightMagenta.Printf("Found naked pair (%d,%d) in col %d. Deleted %d from [%d,%d]\n",
+						digits[0], digits[1], col, digits[1], r, col)
+				}
 			}
 		}
 	}
@@ -318,17 +351,23 @@ func eraseDigitsFromBlkOfPairs(row, col, row2, col2 int, digits []int) bool {
 				if Contains(mat2[x][y], digits[0]) {
 					mat2[x][y] = EraseFromSlice(mat2[x][y], digits[0])
 					emptyL.EraseDigitFromCell(x, y, digits[0])
-					color.LightMagenta.Printf("Found naked pair (%d,%d) in blk [%d,%d]. Deleted %d from [%d,%d]\n",
-						digits[0], digits[1], row/SQ, col/SQ, digits[0], x, y)
 					erased = true
+
+					if *verbose {
+						color.LightMagenta.Printf("Found naked pair (%d,%d) in blk [%d,%d]. Deleted %d from [%d,%d]\n",
+							digits[0], digits[1], row/SQ, col/SQ, digits[0], x, y)
+					}
 				}
 
 				if Contains(mat2[x][y], digits[1]) {
 					mat2[x][y] = EraseFromSlice(mat2[x][y], digits[1])
 					emptyL.EraseDigitFromCell(x, y, digits[1])
-					color.LightMagenta.Printf("Found naked pair (%d,%d) in blk [%d,%d]. Deleted %d from [%d,%d]\n",
-						digits[0], digits[1], row/SQ, col/SQ, digits[1], x, y)
 					erased = true
+
+					if *verbose {
+						color.LightMagenta.Printf("Found naked pair (%d,%d) in blk [%d,%d]. Deleted %d from [%d,%d]\n",
+							digits[0], digits[1], row/SQ, col/SQ, digits[1], x, y)
+					}
 				}
 			}
 		}
@@ -402,8 +441,8 @@ func eraseDigitFromBlk(row, col, dig int) bool {
 // *                                     start of funcs for X-wing                                       *
 // *******************************************************************************************************
 
-// erase digit from row of possibility matrix
-func eraseDigitFromRowMulti(row, dig int, cols []int) (int, bool) {
+// erase digit from row of possibility matrix. digits is list of nos. to be erased. cols is exception list
+func eraseDigitsFromRowMulti(row int, digits, cols []int) (int, bool) {
 	count := 0
 	erased := false
 
@@ -417,12 +456,14 @@ func eraseDigitFromRowMulti(row, dig int, cols []int) (int, bool) {
 			}
 
 			if !inCol {
-				if Contains(mat2[row][c], dig) {
-					mat2[row][c] = EraseFromSlice(mat2[row][c], dig)
-					// remove this digit from cell at this position of the empty list
-					emptyL.EraseDigitFromCell(row, c, dig)
-					erased = true
-					count++
+				for _, dig := range digits {
+					if Contains(mat2[row][c], dig) {
+						mat2[row][c] = EraseFromSlice(mat2[row][c], dig)
+						// remove this digit from cell at this position of the empty list
+						emptyL.EraseDigitFromCell(row, c, dig)
+						erased = true
+						count++
+					}
 				}
 			}
 		}
@@ -433,6 +474,7 @@ func eraseDigitFromRowMulti(row, dig int, cols []int) (int, bool) {
 
 // erase digit from col of possibility matrix
 func eraseDigitFromColMulti(col, dig int, rows []int) (int, bool) {
+	debug := DebugFn(3)
 	count := 0
 	erased := false
 
@@ -453,7 +495,7 @@ func eraseDigitFromColMulti(col, dig int, rows []int) (int, bool) {
 					erased = true
 					count++
 
-					if *debugPtr {
+					if debug {
 						color.LightRed.Printf("Erased digit %d from Cell [%d,%d].\n", dig, r, col)
 					}
 				}
@@ -588,9 +630,9 @@ func rule1() (*Matchlist, int) {
 				count++
 
 				// check that there is no occurrence in same row, col or block
-				notInRow = !FindDigitInRow(debugPtr, mat2, row, col, digit)
-				notInCol = !FindDigitInCol(debugPtr, mat2, row, col, digit)
-				notInBlk = !FindDigitInBlk(debugPtr, mat2, row, col, digit)
+				notInRow = !FindDigitInRow(DebugFn(2), mat2, row, col, digit)
+				notInCol = !FindDigitInCol(DebugFn(2), mat2, row, col, digit)
+				notInBlk = !FindDigitInBlk(DebugFn(2), mat2, row, col, digit)
 				// If found, erase any occurrence of the digit in the same row, col or block
 				findAndEraseDigit(row, col, digit, notInRow, notInCol, notInBlk)
 			}
@@ -628,9 +670,9 @@ func rule1a(row, col int) (*Matchlist, int) {
 				count++
 
 				// check that there is no occurrence in same row, col or block
-				notInRow = !FindDigitInRow(debugPtr, mat2, row, c, digit)
-				notInCol = !FindDigitInCol(debugPtr, mat2, row, c, digit)
-				notInBlk = !FindDigitInBlk(debugPtr, mat2, row, c, digit)
+				notInRow = !FindDigitInRow(DebugFn(2), mat2, row, c, digit)
+				notInCol = !FindDigitInCol(DebugFn(2), mat2, row, c, digit)
+				notInBlk = !FindDigitInBlk(DebugFn(2), mat2, row, c, digit)
 				// If found, erase any occurrence of the digit in the same row, col or block
 				findAndEraseDigit(row, c, digit, notInRow, notInCol, notInBlk)
 			}
@@ -650,9 +692,9 @@ func rule1a(row, col int) (*Matchlist, int) {
 				count++
 
 				// check that there is no occurrence in same row, col or block
-				notInRow = !FindDigitInRow(debugPtr, mat2, r, col, digit)
-				notInCol = !FindDigitInCol(debugPtr, mat2, r, col, digit)
-				notInBlk = !FindDigitInBlk(debugPtr, mat2, r, col, digit)
+				notInRow = !FindDigitInRow(DebugFn(2), mat2, r, col, digit)
+				notInCol = !FindDigitInCol(DebugFn(2), mat2, r, col, digit)
+				notInBlk = !FindDigitInBlk(DebugFn(2), mat2, r, col, digit)
 				// If found, erase any occurrence of the digit in the same row, col or block
 				findAndEraseDigit(r, col, digit, notInRow, notInCol, notInBlk)
 			}
@@ -671,9 +713,9 @@ func rule1a(row, col int) (*Matchlist, int) {
 			count++
 
 			// check that there is no occurrence in same row, col or block
-			notInRow = !FindDigitInRow(debugPtr, mat2, row, col, digit)
-			notInCol = !FindDigitInCol(debugPtr, mat2, row, col, digit)
-			notInBlk = !FindDigitInBlk(debugPtr, mat2, row, col, digit)
+			notInRow = !FindDigitInRow(DebugFn(2), mat2, row, col, digit)
+			notInCol = !FindDigitInCol(DebugFn(2), mat2, row, col, digit)
+			notInBlk = !FindDigitInBlk(DebugFn(2), mat2, row, col, digit)
 			// If found, erase any occurrence of the digit in the same row, col or block
 			findAndEraseDigit(row, col, digit, notInRow, notInCol, notInBlk)
 		}
@@ -700,10 +742,11 @@ func rule1a(row, col int) (*Matchlist, int) {
 //          Fill in this digiti and erase any other occurrence of this digit in the same row, column or block.
 func rule3() (*Matchlist, int) {
 	var (
-		count, itercnt    int
-		foundHiddenSingle bool
-		matched           *Matchlist
+		count, itercnt           int
+		foundHiddenSingle, debug bool
+		matched                  *Matchlist
 	)
+	debug = DebugFn(2)
 	matched = &Matchlist{}
 
 	for dig := 1; dig <= N; dig++ {
@@ -717,7 +760,7 @@ func rule3() (*Matchlist, int) {
 				break
 			} else {
 				for currNode != nil {
-					if *debugPtr {
+					if debug {
 						color.LightGreen.Printf("cell [%d][%d]. %+v\n", currNode.Row, currNode.Col, currNode.Vals)
 					}
 
@@ -730,7 +773,7 @@ func rule3() (*Matchlist, int) {
 					}
 
 					if emptyCnt <= 0 {
-						if *debugPtr {
+						if debug {
 							fmt.Printf("Empty list count = %d\n", emptyL.CountNodes())
 						}
 						break
@@ -760,11 +803,12 @@ func rule3() (*Matchlist, int) {
 //			Search in the specified row or col or blk intersecting this Cell only
 func rule3a(row, col, dig int) (*Matchlist, int) {
 	var (
-		count             int
-		foundHiddenSingle bool
-		currNode          *Cell
-		matched           *Matchlist
+		count                    int
+		foundHiddenSingle, debug bool
+		currNode                 *Cell
+		matched                  *Matchlist
 	)
+	debug = DebugFn(1)
 	matched = &Matchlist{}
 	currNode = emptyL.GetNodeForCell(row, col)
 
@@ -777,7 +821,7 @@ func rule3a(row, col, dig int) (*Matchlist, int) {
 	}
 
 	if emptyCnt <= 0 {
-		if *debugPtr {
+		if debug {
 			fmt.Printf("Empty list count = %d\n", emptyL.CountNodes())
 		}
 	}
@@ -789,15 +833,16 @@ func findDigitAndUpdate(currNode *Cell, dig int) bool {
 	var (
 		row, col                     int
 		notInRow, notInCol, notInBlk bool
-		found                        bool
+		found, debug                 bool
 	)
+	debug = DebugFn(3)
 	row = currNode.Row
 	col = currNode.Col
 
 	// check that there is no occurrence in same row, col or block
-	notInRow = !FindDigitInRow(debugPtr, mat2, row, col, dig)
-	notInCol = !FindDigitInCol(debugPtr, mat2, row, col, dig)
-	notInBlk = !FindDigitInBlk(debugPtr, mat2, row, col, dig)
+	notInRow = !FindDigitInRow(debug, mat2, row, col, dig)
+	notInCol = !FindDigitInCol(debug, mat2, row, col, dig)
+	notInBlk = !FindDigitInBlk(debug, mat2, row, col, dig)
 
 	if notInRow || notInCol || notInBlk {
 		found = true
@@ -859,17 +904,17 @@ func findAndEraseDigit(row, col, dig int, notInRow, notInCol, notInBlk bool) {
 //          Erase any other occurrence of these 2 digits elsewhere in the same row, column or block.
 func rule5() (*Matchlist, int) {
 	var (
-		col, row, col2, row2 int // position of last empty cell
-		count                int
-		twoElem              []int
-		foundNakedPairs      bool
-		inRow, inCol, inBlk  bool
-		secondNode           *Cell
-		matched, matchedBlk  *Matchlist
+		col, row, col2, row2   int // position of last empty cell
+		count                  int
+		twoElem                []int
+		foundNakedPairs, debug bool
+		inRow, inCol, inBlk    bool
+		secondNode             *Cell
+		matched, matchedBlk    *Matchlist
 	)
 	matched = &Matchlist{}
 	matchedBlk = &Matchlist{}
-
+	debug = DebugFn(2)
 	foundNakedPairs = true
 
 	for foundNakedPairs {
@@ -884,7 +929,7 @@ func rule5() (*Matchlist, int) {
 			for currNode != nil {
 				row = currNode.Row
 				col = currNode.Col
-				if *debugPtr {
+				if debug {
 					color.LightGreen.Printf("cell [%d][%d]. %+v\n", row, col, currNode.Vals)
 				}
 
@@ -895,7 +940,7 @@ func rule5() (*Matchlist, int) {
 						if IntArrayEquals(mat2[row][c], twoElem) && c != col {
 							col2 = c
 
-							if *debugPtr {
+							if debug {
 								color.Magenta.Printf("Found naked pair in row %d, in cols %d and %d.\n", row, col, col2)
 							}
 
@@ -904,14 +949,14 @@ func rule5() (*Matchlist, int) {
 							arr := AddIdx(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
-								if *debugPtr {
+								if debug {
 									fmt.Printf("Row %d\n", row)
 								}
 
 								matched.AddRNode(arr)
-								inRow = FindDigitInRowPair(debugPtr, mat2, row, col, col2, twoElem)
+								inRow = FindDigitInRowPair(debug, mat2, row, col, col2, twoElem)
 								if inRow {
-									if *debugPtr {
+									if debug {
 										fmt.Printf("Found digits of pairs in row %d.\n", row)
 									}
 									eraseDigitsFromRowOfPairs(row, col, col2, twoElem)
@@ -928,7 +973,7 @@ func rule5() (*Matchlist, int) {
 						if IntArrayEquals(mat2[r][col], twoElem) && r != row {
 							row2 = r
 
-							if *debugPtr {
+							if debug {
 								color.Magenta.Printf("Found naked pair in col %d, in rows %d and %d.\n", col, row, row2)
 							}
 
@@ -937,14 +982,14 @@ func rule5() (*Matchlist, int) {
 							arr := AddIdx(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
-								if *debugPtr {
+								if debug {
 									fmt.Printf("Col %d\n", col)
 								}
 
 								matched.AddRNode(arr)
-								inCol = FindDigitInColPair(debugPtr, mat2, row, col, row2, twoElem)
+								inCol = FindDigitInColPair(debug, mat2, row, col, row2, twoElem)
 								if inCol {
-									if *debugPtr {
+									if debug {
 										fmt.Printf("Found digits of pairs in col %d.\n", col)
 									}
 									eraseDigitsFromColOfPairs(row, col, row2, twoElem)
@@ -961,13 +1006,13 @@ func rule5() (*Matchlist, int) {
 					startCol := col / SQ * SQ
 					emptyCntBlk := emptyL.CountNodes()
 
-					if *debugPtr {
+					if debug {
 						fmt.Printf("Finding 2nd pair [%d,%d] cell [%d,%d]\n", twoElem[0], twoElem[1], row, col)
 					}
 
 					for x := startRow; x < startRow+SQ; x++ {
 						for y := startCol; y < startCol+SQ; y++ {
-							if *debugPtr {
+							if debug {
 								fmt.Printf("Blk [%d,%d]: cell [%d,%d]\n", row/SQ, col/SQ, x, y)
 							}
 
@@ -975,14 +1020,14 @@ func rule5() (*Matchlist, int) {
 								row2 = x
 								col2 = y
 
-								if *debugPtr {
+								if debug {
 									color.Magenta.Printf("Found naked pair in blk [%d,%d], in cells [%d,%d] and [%d,%d].\n",
 										row/SQ, col/SQ, row, col, row2, col2)
 								}
 
 								secondNode = emptyL.GetNodeForCell(row2, col2)
 
-								if *debugPtr {
+								if debug {
 									fmt.Printf("Found naked pair: %d,%d. x,y = %d,%d.\n",
 										twoElem[0], twoElem[1], row2, col2)
 								}
@@ -992,13 +1037,13 @@ func rule5() (*Matchlist, int) {
 								if !matchedBlk.ContainsPair(arr) {
 									matchedBlk.AddRNode(arr)
 
-									if *debugPtr {
+									if debug {
 										fmt.Printf("Blk [%d,%d]\n", row/SQ, col/SQ)
 									}
 
-									inBlk = FindDigitInBlkPair(debugPtr, mat2, row, col, row2, col2, twoElem)
+									inBlk = FindDigitInBlkPair(debug, mat2, row, col, row2, col2, twoElem)
 									if inBlk {
-										if *debugPtr {
+										if debug {
 											fmt.Printf("Found digits of pairs in blk [%d,%d].\n", row/SQ, col/SQ)
 											PrintPossibleMat(mat2)
 										}
@@ -1027,6 +1072,138 @@ func rule5() (*Matchlist, int) {
 	return matched, count
 }
 
+// Rule 6	Naked triplets
+//			There are 3 dells in the same row, col or block that have exactly the same 3 digits.
+//			Variation: It can also be a combination of 2 digits in one cell and 3 digits in another cell.
+//	        E.g. The 3 cells contain (5,6), (6,8) and (8,5).
+//			They form a closed loop 5 -> 8 -> 6 going from (5,6) to (5, 8) to (8,6).
+func rule6() (*Matchlist, int) {
+	var (
+		count int
+		//foundTrip bool
+		matched *Matchlist
+	)
+
+	matched = &Matchlist{}
+	return matched, count
+
+	// Search for exactly cells that contain 3 same digits each.
+
+	// search rows
+
+}
+
+// Find naked triplets in all rows for the case where all 3 cells have 3 same digits each
+func findTripInRow(m2 Pmat) (int, bool) {
+	var (
+		count, tripCnt int
+		trip           []int
+		found          bool
+		debug          bool
+	)
+	debug = DebugFn(2)
+	found = false
+
+	for i := 0; i < N; i++ {
+		count = 0
+
+		for j := 0; j < N; j++ {
+			if m2[i][j] != nil && len(m2[i][j]) == 3 {
+				if count == 0 {
+					trip = m2[i][j]
+					count = 1
+
+					if debug {
+						fmt.Printf("Triplets: %v at [%d,%d]. Count = %d\n", trip, i, j, count)
+					}
+
+				} else {
+					if IntArrayEquals(trip, m2[i][j]) {
+						count++
+
+						if debug {
+							fmt.Printf("Triplets: %v at [%d,%d]. Count = %d\n", trip, i, j, count)
+						}
+					}
+				}
+			}
+		}
+
+		if count == 3 {
+			tripCnt++
+			found = true
+		}
+	}
+
+	return tripCnt, found
+}
+
+// Variation of Naked Triplets rule:
+// Find naked triplets in row for the case where not all 3 cells contain 3 digits each.
+// At least 1 cell must contain 3 digits.
+// Solution: Search for a cell with 3 digits. Then search for exactly 2 more cells which contain either 2 or 3 digits
+// where the digits are the same as that of the first 3-digit cell.
+func findTripInRowVar(m2 Pmat, row int) bool {
+	var (
+		found         bool
+		totCnt, count int
+		trip, colList []int
+	)
+
+	for i := 0; i < N; i++ {
+		for j := 0; j < N; j++ {
+			count = 0
+			colList = nil
+			found = false
+
+			if m2[i][j] != nil && len(m2[i][j]) == 3 { // first cell with 3 digits
+				trip = m2[i][j]
+				count = 1
+				colList = append(colList, j)
+
+				for c := 0; c < N; c++ {
+					if m2[i][j] != nil && len(m2[i][j]) >= 2 && len(m2[i][j]) <= 3 && j != c {
+
+						// case of 3 digits
+						if len(m2[i][j]) == 3 {
+							if IntArrayEquals(trip, m2[i][c]) {
+								colList = append(colList, c)
+								count++
+							}
+						} else {
+							// case of 2 digits
+							cnt := 0
+							for _, v := range m2[i][c] {
+								if Contains(trip, v) {
+									cnt++
+								}
+							}
+
+							if cnt == 2 {
+								colList = append(colList, c)
+								count++
+							}
+						}
+					}
+				}
+
+				if count == 3 {
+					found = true
+					totCnt++ // no. of naked triplets found
+				}
+
+				if found {
+					// erase the same 3 digits from elsewhere in row
+					eraseDigitsFromRowMulti(i, trip, colList)
+					fmt.Println()
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 // Rule 20: X-wing (or Rectangular pattern)
 // Rectangular box  pattern. If the same no. appears in the corner cells of a rectangular box,
 // then that no. can be safely eliminated (crossed out) in all columns and rows that intersect
@@ -1036,6 +1213,7 @@ func rule20() (*Matchlist, int) {
 		count      int
 		foundXWing bool
 		inBlk      bool
+		debug      bool
 		arrC       []Coord
 		matched    *Matchlist
 		foundList  *Matchlist
@@ -1044,6 +1222,9 @@ func rule20() (*Matchlist, int) {
 	matched = &Matchlist{}
 	foundList = &Matchlist{}
 	foundXWing = true
+	debug = DebugFn(2)
+
+	fmt.Printf("Func: %s. Debug: %t\n", FuncName(1), debug)
 
 	for dig := 1; dig <= N; dig++ {
 		foundXWing = false
@@ -1061,19 +1242,15 @@ func rule20() (*Matchlist, int) {
 					for bj := 0; bj < SQ; bj++ {
 						arrC, inBlk = checkBlkForDigit(mat2, bi, bj, dig, 2)
 						if inBlk { // exactly 2 same digits in this block
-							if *debugPtr {
-								color.LightGreen.Printf("Found exactly 2 same digits no. %d in block [%d,%d].\n",
-									dig, bi, bj)
-							}
 
 							// Are they in the same row?
-							foundList, foundXWing = checkSameRowXwing(bi, bj, dig, arrC, inBlk, foundList)
+							foundList, foundXWing = checkSameRowXwing(debug, bi, bj, dig, arrC, inBlk, foundList)
 							if foundXWing {
 								count++
 							}
 
 							// Are they in the same column?
-							foundList, foundXWing = checkSameColXwing(bi, bj, dig, arrC, inBlk, foundList)
+							foundList, foundXWing = checkSameColXwing(debug, bi, bj, dig, arrC, inBlk, foundList)
 							if foundXWing {
 								count++
 							}
@@ -1087,12 +1264,12 @@ func rule20() (*Matchlist, int) {
 	return matched, count
 }
 
-func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
+func checkSameRowXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
 	blkListi := []int{}
 	foundXWing := false
 
 	if arrC[0].Row == arrC[1].Row {
-		if *debugPtr {
+		if debug {
 			color.LightBlue.Printf("The 2 same digits no. %d are both in row %d.\n",
 				dig, arrC[0].Row)
 		}
@@ -1101,8 +1278,8 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 			if bi != bi2 { // not the original block
 				arrC2, inBlk2 := checkBlkForDigit(mat2, bi2, bj, dig, 2)
 				if inBlk2 { // found exactly 2 same digits in second block
-					if *debugPtr {
-						color.LightYellow.Printf("Found 2nd block [%d,%d].\n", bi2, bj)
+					if debug {
+						color.LightBlue.Printf("Found 2nd block [%d,%d].\n", bi2, bj)
 					}
 
 					// Locations of the X-wing cells in first block
@@ -1129,8 +1306,8 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 							foundList.AddRNode(arr)
 						}
 
-						if *debugPtr {
-							color.LightYellow.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
+						if debug {
+							color.LightMagenta.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
 								dig, rowXw1, colXw1, rowXw2, colXw2, rowXw3, colXw3, rowXw4, colXw4)
 							PrintPossibleMat(mat2)
 						}
@@ -1139,7 +1316,7 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 						colList := []int{}
 						colList = append(colList, colXw1)
 						colList = append(colList, colXw2)
-						if *debugPtr {
+						if debug {
 							color.LightYellow.Printf("Collist: %v\n", colList)
 						}
 
@@ -1154,9 +1331,9 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 										foundXWing = true
 									}
 
-									if *debugPtr {
+									if debug {
 										if erased {
-											color.LightYellow.Printf("X-wing: Erased %d counts of digit %d from col %d.\n", eraCnt, dig, c)
+											color.LightMagenta.Printf("X-wing: Erased %d counts of digit %d from col %d.\n", eraCnt, dig, c)
 											PrintPossibleMat(mat2)
 										}
 									}
@@ -1169,21 +1346,21 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 							if !Contains(colList, c) {
 								thirdCol = c
 
-								if *debugPtr {
+								if debug {
 									color.LightYellow.Printf("Found third col no. %d of digit %d.\n", thirdCol, dig)
 								}
 								break
 							}
 						}
 
-						if *debugPtr {
+						if debug {
 							color.LightYellow.Printf("Row blklist: %v\n", blkListi)
 						}
 
 						for i := 0; i < SQ; i++ { // find third block
 							if !Contains(blkListi, i) {
 
-								if *debugPtr {
+								if debug {
 									color.LightYellow.Printf("Third blk: %d\n", i)
 								}
 
@@ -1199,7 +1376,7 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 										// already contain a pair of the digits each, forming the X-wing.
 										matched, cnt := rule1a(r, thirdCol)
 
-										if *debugPtr && cnt > 0 {
+										if debug && cnt > 0 {
 											color.LightYellow.Printf("Rule1a: Found %d counts of open single %d at [%d,%d]\n",
 												cnt, dig, r, thirdCol)
 											matched.PrintResult(RuleTable[20])
@@ -1209,7 +1386,7 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 									// check for hidden singles at this Cell position
 									if mat2[r][thirdCol] != nil {
 										matched3, cnt3 := rule3a(r, thirdCol, dig)
-										if *debugPtr && cnt3 > 0 {
+										if debug && cnt3 > 0 {
 											color.LightYellow.Printf("Rule3a: Found %d counts of hidden single %d at [%d,%d]\n",
 												cnt3, dig, r, thirdCol)
 											PrintPossibleMat(mat2)
@@ -1227,14 +1404,14 @@ func checkSameRowXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 	return foundList, foundXWing
 }
 
-func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
+func checkSameColXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
 	blkListj := []int{} // col blocks
 	foundXWing := false
 
 	if arrC[0].Col == arrC[1].Col {
 		blkListj = append(blkListj, bj)
-		if *debugPtr {
-			color.LightYellow.Printf("The 2 same digits no. %d are both in col %d.\n",
+		if debug {
+			color.LightBlue.Printf("The 2 same digits no. %d are both in col %d.\n",
 				dig, arrC[0].Col)
 		}
 		// check blks horizontally, i.e. this row of blocks
@@ -1242,8 +1419,8 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 			if bj != bj2 { // not the original block
 				arrC2, inBlk2 := checkBlkForDigit(mat2, bi, bj2, dig, 2)
 				if inBlk2 { // found exactly 2 same digits in second block
-					if *debugPtr {
-						color.LightYellow.Printf("Found 2nd block [%d,%d].\n", bi, bj2)
+					if debug {
+						color.LightBlue.Printf("Found 2nd block [%d,%d].\n", bi, bj2)
 					}
 
 					// Locations of the X-wing cells in first block
@@ -1271,8 +1448,8 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 						}
 
 						if inBlk2 { // found exactly 2 same digits in second block
-							if *debugPtr {
-								color.LightYellow.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
+							if debug {
+								color.LightMagenta.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
 									dig, rowXw1, colXw1, rowXw2, colXw2, rowXw3, colXw3, rowXw4, colXw4)
 								PrintPossibleMat(mat2)
 							}
@@ -1281,7 +1458,7 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 							rowList = append(rowList, rowXw1)
 							rowList = append(rowList, rowXw2)
 
-							if *debugPtr {
+							if debug {
 								color.LightYellow.Printf("Rowlist: %v\n", rowList)
 							}
 
@@ -1291,11 +1468,12 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 								for c := 0; c < N; c++ {
 									if c != colXw1 && c != colXw2 && c != colXw3 && c != colXw4 {
 										// erase digit from this cell
-										eraCnt, erased := eraseDigitFromRowMulti(r, dig, []int{colXw1, colXw2, colXw3, colXw4})
+										eraCnt, erased := eraseDigitsFromRowMulti(r, []int{dig}, []int{colXw1, colXw2, colXw3, colXw4})
 										if eraCnt > 0 {
 											foundXWing = true
 										}
-										if *debugPtr {
+
+										if debug {
 											if erased {
 												color.LightYellow.Printf("X-wing: Erased %d counts of digit %d from row %d.\n", eraCnt, dig, r)
 												PrintPossibleMat(mat2)
@@ -1310,21 +1488,21 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 								if !Contains(rowList, r) {
 									thirdRow = r
 
-									if *debugPtr {
+									if debug {
 										color.LightYellow.Printf("Found third row no. %d of digit %d.\n", thirdRow, dig)
 									}
 									break
 								}
 							}
 
-							if *debugPtr {
+							if debug {
 								color.LightYellow.Printf("Col blklist: %v\n", blkListj)
 							}
 
 							for j := 0; j < SQ; j++ { // find third block horizontally
 								if !Contains(blkListj, j) {
 
-									if *debugPtr {
+									if debug {
 										color.LightYellow.Printf("Third blk: %d\n", j)
 									}
 
@@ -1340,7 +1518,7 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 											// already contain a pair of the digits each, forming the X-wing.
 											matched, cnt := rule1a(thirdRow, c)
 
-											if *debugPtr && cnt > 0 {
+											if debug && cnt > 0 {
 												color.LightYellow.Printf("Rule1a: Found %d counts of open single %d at [%d,%d]\n",
 													cnt, dig, thirdRow, c)
 												matched.PrintResult(RuleTable[20])
@@ -1350,7 +1528,8 @@ func checkSameColXwing(bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Mat
 										// check for hidden singles at this Cell position
 										if mat2[thirdRow][c] != nil {
 											matched3, cnt3 := rule3a(thirdRow, c, dig)
-											if *debugPtr && cnt3 > 0 {
+
+											if debug && cnt3 > 0 {
 												color.LightYellow.Printf("Rule3a: Found %d counts of hidden single %d at [%d,%d]\n",
 													cnt3, dig, thirdRow, c)
 												PrintPossibleMat(mat2)

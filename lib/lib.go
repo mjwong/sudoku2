@@ -99,6 +99,20 @@ func GetArrForSqu(m Intmat, i, j int) []int {
 	return arrSq
 }
 
+// Removes duplicate elements in array
+func Unique(arr []int) []int {
+	occured := map[int]bool{}
+	result := []int{}
+
+	for e := range arr {
+		if !occured[arr[e]] {
+			occured[arr[e]] = true
+			result = append(result, arr[e])
+		}
+	}
+	return result
+}
+
 func GetColOfPossibleMat(mat2 Pmat, col int) [][]int {
 	var m [][]int
 
@@ -203,8 +217,10 @@ func CountEmpty(mat Intmat) int {
 }
 
 // Get calling function name
-func FuncName() string {
-	pc, _, _, _ := runtime.Caller(1)
+func FuncName(skip int) string {
+	// skip: 0 is this caller FuncName, 1 is caller of this caller
+	// and so on for the caller stack all the way up to the main fn.¯
+	pc, _, _, _ := runtime.Caller(skip)
 	return runtime.FuncForPC(pc).Name()
 }
 
@@ -391,20 +407,20 @@ func PrintSudoku(m Intmat) {
 // *******************************************************************************************************
 
 // check row of possibility matrix
-func FindDigitInRow(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
-	if *debugPtr {
+func FindDigitInRow(debug bool, mat2 Pmat, row, col, dig int) bool {
+	if debug {
 		fmt.Println("In findDigitInRow...")
 	}
 
 	for c := 0; c < N; c++ {
 		if mat2[row][c] != nil && c != col {
-			if *debugPtr {
+			if debug {
 				fmt.Printf("Cell [%d][%d] = %v\n", row, c, mat2[row][c])
 			}
 
 			if Contains(mat2[row][c], dig) {
 
-				if *debugPtr {
+				if debug {
 					fmt.Printf("row %d contains digit %d\n", row, dig)
 				}
 				return true
@@ -417,19 +433,19 @@ func FindDigitInRow(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
 }
 
 // check column of possibility matrix
-func FindDigitInCol(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
-	if *debugPtr {
+func FindDigitInCol(debug bool, mat2 Pmat, row, col, dig int) bool {
+	if debug {
 		fmt.Println("In findDigitInCol...")
 	}
 
 	for r := 0; r < N; r++ {
 		if mat2[r][col] != nil && r != row {
-			if *debugPtr {
+			if debug {
 				fmt.Printf("Cell [%d][%d] = %v\n", r, col, mat2[r][col])
 			}
 
 			if Contains(mat2[r][col], dig) {
-				if *debugPtr {
+				if debug {
 					fmt.Printf("col %d contains digit %d\n", col, dig)
 				}
 				return true
@@ -441,8 +457,8 @@ func FindDigitInCol(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
 }
 
 // check block of possibility matrix corresponding to cell [row[col]
-func FindDigitInBlk(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
-	if *debugPtr {
+func FindDigitInBlk(debug bool, mat2 Pmat, row, col, dig int) bool {
+	if debug {
 		fmt.Println("In findDigitInBlk...")
 	}
 
@@ -452,13 +468,13 @@ func FindDigitInBlk(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
 	for x := startRow; x < startRow+SQ; x++ {
 		for y := startCol; y < startCol+SQ; y++ {
 			if mat2[x][y] != nil && !(x == row && y == col) {
-				if *debugPtr {
+				if debug {
 					color.White.Printf("Cell [%d][%d] = %v\n", x, y, mat2[x][y])
 				}
 
 				if Contains(mat2[x][y], dig) {
 
-					if *debugPtr {
+					if debug {
 						fmt.Printf("blk [%d,%d] contains digit %d\n", x/SQ, y/SQ, dig)
 					}
 					return true
@@ -479,12 +495,12 @@ func FindDigitInBlk(debugPtr *bool, mat2 Pmat, row, col, dig int) bool {
 // *******************************************************************************************************
 
 // check row of possibility matrix
-func FindDigitInRowPair(debugPtr *bool, mat2 Pmat, row, col, col2 int, digits []int) bool {
+func FindDigitInRowPair(debug bool, mat2 Pmat, row, col, col2 int, digits []int) bool {
 	for c := 0; c < N; c++ {
 		if mat2[row][c] != nil && c != col && c != col2 {
 			if ContainsMulti(mat2[row][c], digits) {
 
-				if *debugPtr {
+				if debug {
 					fmt.Printf("Cell [%d,%d] contains digits of naked pair", row, c)
 				}
 				return true
@@ -496,15 +512,15 @@ func FindDigitInRowPair(debugPtr *bool, mat2 Pmat, row, col, col2 int, digits []
 
 // check col of possibility matrix if any of the digits in the naked pair is
 // found in this col
-func FindDigitInColPair(debugPtr *bool, mat2 Pmat, row, col, row2 int, digits []int) bool {
+func FindDigitInColPair(debug bool, mat2 Pmat, row, col, row2 int, digits []int) bool {
 	for r := 0; r < N; r++ {
 		if mat2[r][col] != nil && r != row && r != row2 {
-			if *debugPtr {
+			if debug {
 				fmt.Printf("Cell [%d][%d] = %v\n", r, col, mat2[r][col])
 			}
 			if ContainsMulti(mat2[r][col], digits) {
 
-				if *debugPtr {
+				if debug {
 					fmt.Printf("Cell [%d,%d] contains digits of naked pair", r, col)
 				}
 				return true
@@ -515,19 +531,19 @@ func FindDigitInColPair(debugPtr *bool, mat2 Pmat, row, col, row2 int, digits []
 }
 
 // check block of possibility matrix
-func FindDigitInBlkPair(debugPtr *bool, mat2 Pmat, row, col, row2, col2 int, digits []int) bool {
+func FindDigitInBlkPair(debug bool, mat2 Pmat, row, col, row2, col2 int, digits []int) bool {
 	startRow := row / SQ * SQ
 	startCol := col / SQ * SQ
 
 	for x := startRow; x < startRow+SQ; x++ {
 		for y := startCol; y < startCol+SQ; y++ {
 			if mat2[x][y] != nil && !(x == row && y == col) && !(x == row2 && y == col2) {
-				if *debugPtr {
+				if debug {
 					fmt.Printf("Cell [%d][%d] = %v\n", x, y, mat2[x][y])
 				}
 				if ContainsMulti(mat2[x][y], digits) {
 
-					if *debugPtr {
+					if debug {
 						fmt.Printf("Cell [%d,%d] contains digits of naked pair", x, y)
 					}
 					return true

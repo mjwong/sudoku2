@@ -102,7 +102,7 @@ func TestGetPossibleMat(t *testing.T) {
 }
 
 func TestDigitNotIn(t *testing.T) {
-	const ncols = 9
+	debug := DebugFn(2) // Get name of this caller
 
 	input := "...15....91..764..5.6.4.3.1......69.6..5.41.7.71........7.3.9.6..386..151...95..."
 
@@ -123,8 +123,8 @@ func TestDigitNotIn(t *testing.T) {
 		{[]int{}, []int{2, 4, 6, 8}, []int{2, 4, 8}, []int{2, 4, 7}, []int{}, []int{}, []int{2, 7, 8}, []int{2, 3, 4, 7, 8}, []int{2, 3, 4, 8}},
 	}
 
-	for i := 0; i < ncols; i++ {
-		for j := 0; j < ncols; j++ {
+	for i := 0; i < N; i++ {
+		for j := 0; j < N; j++ {
 			if !IntArrayEquals(mat2[i][j], list[i][j]) {
 				t.Fatalf("Expected %v but got %v\n", list[i][j], mat2[i][j])
 			}
@@ -137,15 +137,15 @@ func TestDigitNotIn(t *testing.T) {
 
 	// digit 1 is found hidden in cell [3,4].
 	// search for digit 1; should find in row 4 and blk [1,1] but not in col 5.
-	if !FindDigitInRow(debugPtr, mat2, 3, 4, 1) {
+	if !FindDigitInRow(debug, mat2, 3, 4, 1) {
 		t.Fatalf("Digit should be in row 3.")
 	}
 
-	if FindDigitInCol(debugPtr, mat2, 3, 4, 1) {
+	if FindDigitInCol(debug, mat2, 3, 4, 1) {
 		t.Fatalf("Digit should not be in column 4.")
 	}
 
-	if !FindDigitInBlk(debugPtr, mat2, 3, 4, 1) {
+	if !FindDigitInBlk(debug, mat2, 3, 4, 1) {
 		t.Fatalf("Digit should be in block [1,1].")
 	}
 }
@@ -319,6 +319,30 @@ func TestContainsPair(t *testing.T) {
 		t.Fatalf("The reversed pairs should be the same but are not.\n")
 	}
 }
+
+func TestFindTripInRow(t *testing.T) {
+
+	pm := Pmat{}
+	pm[0][0] = []int{1, 5, 6}
+	pm[0][2] = []int{2, 8, 9}
+	pm[0][5] = []int{5, 9}
+	pm[0][6] = []int{1, 5, 6}
+	pm[0][7] = []int{2, 5, 8}
+	pm[0][8] = []int{1, 5, 6}
+
+	PrintPossibleMat(pm)
+
+	cnt, found := findTripInRow(pm)
+	if !found {
+		t.Fatal("Should find triplet in row 0 but did not.")
+	}
+
+	if cnt != 1 {
+		t.Fatalf("Should find 1 triplet but got %d.\n", cnt)
+	}
+}
+
+// ************************************** Rule Tests *********************************************
 
 func TestRule1(t *testing.T) {
 
@@ -699,7 +723,7 @@ func TestEraseDigitFromRowMulti(t *testing.T) {
 
 	startCnt := CountElemPosMat(mat2)
 
-	eraCnt, erased := eraseDigitFromRowMulti(0, 2, []int{0, 3})
+	eraCnt, erased := eraseDigitsFromRowMulti(0, []int{2}, []int{0, 3})
 
 	endCnt := CountElemPosMat(mat2)
 
