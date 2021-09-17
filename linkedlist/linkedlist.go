@@ -112,7 +112,7 @@ func (p *LinkedList) CountElem() int {
 	return count
 }
 
-func (p *LinkedList) GetNodeForCell(row, col int) *Cell {
+func (p *LinkedList) GetNodeFoRCell(row, col int) *Cell {
 	currN := p.Head
 	for currN != nil {
 		if currN.Row == row && currN.Col == col {
@@ -124,7 +124,7 @@ func (p *LinkedList) GetNodeForCell(row, col int) *Cell {
 }
 
 func (p *LinkedList) EraseDigitFromCell(row, col, dig int) {
-	node := p.GetNodeForCell(row, col)
+	node := p.GetNodeFoRCell(row, col)
 	node.Vals = EraseFromSlice(node.Vals, dig)
 }
 

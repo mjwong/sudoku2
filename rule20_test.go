@@ -74,28 +74,28 @@ func TestEraseDigitFromRowMulti(t *testing.T) {
 
 func TestContainsXwing(t *testing.T) {
 
-	arr := []Idx{
+	arr := []RCell{
 		{Row: 1, Col: 2, Vals: []int{1, 2, 5}},
 		{Row: 2, Col: 3, Vals: []int{2, 3, 6}},
 		{Row: 3, Col: 4, Vals: []int{2, 4, 7}},
 		{Row: 4, Col: 5, Vals: []int{3, 5, 9}},
 	}
 
-	arr2 := []Idx{
+	arr2 := []RCell{
 		{Row: 5, Col: 6, Vals: []int{1, 2, 5}},
 		{Row: 6, Col: 8, Vals: []int{2, 3, 6}},
 		{Row: 3, Col: 4, Vals: []int{2, 4, 7}},
 		{Row: 4, Col: 5, Vals: []int{3, 5, 9}},
 	}
 
-	arr3 := []Idx{
+	arr3 := []RCell{
 		{Row: 1, Col: 2, Vals: []int{1, 2, 5}},
 		{Row: 2, Col: 3, Vals: []int{2, 3, 6}},
 		{Row: 3, Col: 4, Vals: []int{2, 4, 7}},
 		{Row: 4, Col: 5, Vals: []int{3, 5, 9}},
 	}
 
-	arr4 := []Idx{
+	arr4 := []RCell{
 		{Row: 6, Col: 2, Vals: []int{1, 2, 5}},
 		{Row: 7, Col: 9, Vals: []int{2, 3, 6}},
 		{Row: 1, Col: 3, Vals: []int{2, 4, 7}},
@@ -116,6 +116,49 @@ func TestContainsXwing(t *testing.T) {
 			t.Fatal("Should notcontain a X-wing but it did.")
 		}
 		currNode = currNode.Next
+	}
+}
+
+func TestContainsXwing2(t *testing.T) {
+	mat2 = Pmat{}
+	mat2[0][0] = []int{1, 2, 5, 6}
+	mat2[0][2] = []int{1, 5, 6, 9}
+	mat2[0][3] = []int{2, 5, 7, 9}
+	mat2[0][4] = []int{5, 7, 9}
+	mat2[0][6] = []int{1, 2, 5, 6, 7, 9}
+	mat2[0][7] = []int{2, 5, 6, 7}
+	mat2[2][0] = []int{2, 5, 8}
+	mat2[2][2] = []int{5, 8, 9}
+	mat2[2][3] = []int{2, 5, 7, 9}
+	mat2[2][6] = []int{2, 5, 7, 9}
+	mat2[2][7] = []int{2, 5, 7}
+	PrintPossibleMat(mat2)
+
+	arr := []RCell{}
+	arr = AddRCellToArr(arr, 0, 0, 2)
+	arr = AddRCellToArr(arr, 2, 0, 2)
+	arr = AddRCellToArr(arr, 0, 3, 2)
+	arr = AddRCellToArr(arr, 2, 3, 2)
+
+	foundList := &Matchlist{}
+	foundList.AddRNode(arr)
+
+	if foundList.CountNodes() != 1 {
+		t.Fatalf("It should have 1 rnode but got %d.\n", foundList.CountNodes())
+	}
+
+	if !foundList.ContainsXwing(arr) {
+		t.Fatalf("List should contain the x-wing node but did not. %v\n", foundList)
+	}
+
+	arr2 := []RCell{}
+	arr2 = AddRCellToArr(arr2, 4, 4, 2)
+	arr2 = AddRCellToArr(arr2, 5, 4, 2)
+	arr2 = AddRCellToArr(arr2, 4, 7, 2)
+	arr2 = AddRCellToArr(arr2, 5, 7, 2)
+
+	if foundList.ContainsXwing(arr2) {
+		t.Fatalf("List should not contain the x-wing node but did. %v\n", foundList)
 	}
 }
 
@@ -143,7 +186,7 @@ func TestRule20(t *testing.T) {
 
 	startCnt := CountElemPosMat(mat2)
 
-	_, cnt := rule20()
+	_, cnt, _ := rule20()
 
 	endCnt := CountElemPosMat(mat2)
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/mjwong/sudoku2/lib"
 	. "github.com/mjwong/sudoku2/matchlist"
@@ -12,19 +13,19 @@ import (
 // Rectangular box  pattern. If the same no. appears in the corner cells of a rectangular box,
 // then that no. can be safely eliminated (crossed out) in all columns and rows that intersect
 // with the corner cells of the rectangular box.
-func rule20() (*Matchlist, int) {
+func rule20() (*Matchlist, int, time.Duration) {
 	var (
 		count      int
 		foundXWing bool
 		inBlk      bool
 		debug      bool
+		start      time.Time
 		arrC       []Coord
 		matched    *Matchlist
-		foundList  *Matchlist
 	)
 
+	start = time.Now()
 	matched = &Matchlist{}
-	foundList = &Matchlist{}
 	foundXWing = true
 	debug = DebugFn(2)
 
@@ -48,15 +49,23 @@ func rule20() (*Matchlist, int) {
 						if inBlk { // exactly 2 same digits in this block
 
 							// Are they in the same row?
-							foundList, foundXWing = checkSameRowXwing(debug, bi, bj, dig, arrC, inBlk, foundList)
+							matched, foundXWing = checkSameRowXwing(debug, bi, bj, dig, arrC, inBlk, matched)
 							if foundXWing {
 								count++
+
+								if debug {
+									fmt.Println("Found x-wing in same row.")
+								}
 							}
 
 							// Are they in the same column?
-							foundList, foundXWing = checkSameColXwing(debug, bi, bj, dig, arrC, inBlk, foundList)
+							matched, foundXWing = checkSameColXwing(debug, bi, bj, dig, arrC, inBlk, matched)
 							if foundXWing {
 								count++
+
+								if debug {
+									fmt.Println("Found x-wing in same col.")
+								}
 							}
 						}
 					}
@@ -65,7 +74,7 @@ func rule20() (*Matchlist, int) {
 			} // end of emptyL iteration
 		}
 	}
-	return matched, count
+	return matched, count, time.Since(start)
 }
 
 func checkSameRowXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, foundList *Matchlist) (*Matchlist, bool) {
@@ -101,14 +110,11 @@ func checkSameRowXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 					if (colXw1 == colXw3 || colXw1 == colXw4) &&
 						(colXw2 == colXw3 || colXw2 == colXw4) {
 
-						arr := []Idx{}
-						arr = append(arr, Idx{Row: rowXw1, Col: colXw1, Vals: []int{dig}})
-						arr = append(arr, Idx{Row: rowXw2, Col: colXw2, Vals: []int{dig}})
-						arr = append(arr, Idx{Row: rowXw3, Col: colXw3, Vals: []int{dig}})
-						arr = append(arr, Idx{Row: rowXw4, Col: colXw4, Vals: []int{dig}})
-						if !foundList.ContainsXwing(arr) {
-							foundList.AddRNode(arr)
-						}
+						arr := []RCell{}
+						arr = AddRCellToArr(arr, rowXw1, colXw1, dig)
+						arr = AddRCellToArr(arr, rowXw2, colXw2, dig)
+						arr = AddRCellToArr(arr, rowXw3, colXw3, dig)
+						arr = AddRCellToArr(arr, rowXw4, colXw4, dig)
 
 						if debug {
 							color.LightMagenta.Printf("Found X-wing #%d: [%d,%d], [%d,%d], [%d,%d], [%d,%d].\n",
@@ -131,8 +137,17 @@ func checkSameRowXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 								if r != rowXw1 && r != rowXw2 && r != rowXw3 && r != rowXw4 {
 									// erase digit from this cell
 									eraCnt, erased := eraseDigitFromColMulti(c, dig, []int{rowXw1, rowXw2, rowXw3, rowXw4})
-									if eraCnt > 0 {
+									if erased {
 										foundXWing = true
+
+										if !foundList.ContainsXwing(arr) {
+											if debug {
+												color.LightRed.Println("Not contains x-wing")
+												//foundList.PrintResult("X-wing")
+											}
+
+											foundList.AddRNode(arr)
+										}
 									}
 
 									if debug {
@@ -178,7 +193,7 @@ func checkSameRowXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 										// the entire row since we know the digit can only appear in the
 										// third missing row of the third block, because the first 2 blocks
 										// already contain a pair of the digits each, forming the X-wing.
-										matched, cnt := rule1a(r, thirdCol)
+										matched, cnt, _ := rule1a(r, thirdCol)
 
 										if debug && cnt > 0 {
 											color.LightYellow.Printf("Rule1a: Found %d counts of open single %d at [%d,%d]\n",
@@ -189,7 +204,7 @@ func checkSameRowXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 
 									// check for hidden singles at this Cell position
 									if mat2[r][thirdCol] != nil {
-										matched3, cnt3 := rule3a(r, thirdCol, dig)
+										matched3, cnt3, _ := rule3a(r, thirdCol, dig)
 										if debug && cnt3 > 0 {
 											color.LightYellow.Printf("Rule3a: Found %d counts of hidden single %d at [%d,%d]\n",
 												cnt3, dig, r, thirdCol)
@@ -242,14 +257,11 @@ func checkSameColXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 					if (rowXw1 == rowXw3 || rowXw1 == rowXw4) &&
 						(rowXw2 == rowXw3 || rowXw2 == rowXw4) {
 
-						arr := []Idx{}
-						arr = append(arr, Idx{Row: rowXw1, Col: colXw1, Vals: []int{dig}})
-						arr = append(arr, Idx{Row: rowXw2, Col: colXw2, Vals: []int{dig}})
-						arr = append(arr, Idx{Row: rowXw3, Col: colXw3, Vals: []int{dig}})
-						arr = append(arr, Idx{Row: rowXw4, Col: colXw4, Vals: []int{dig}})
-						if !foundList.ContainsXwing(arr) {
-							foundList.AddRNode(arr)
-						}
+						arr := []RCell{}
+						arr = AddRCellToArr(arr, rowXw1, colXw1, dig)
+						arr = AddRCellToArr(arr, rowXw2, colXw2, dig)
+						arr = AddRCellToArr(arr, rowXw3, colXw3, dig)
+						arr = AddRCellToArr(arr, rowXw4, colXw4, dig)
 
 						if inBlk2 { // found exactly 2 same digits in second block
 							if debug {
@@ -273,8 +285,17 @@ func checkSameColXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 									if c != colXw1 && c != colXw2 && c != colXw3 && c != colXw4 {
 										// erase digit from this cell
 										eraCnt, erased := eraseDigitsFromRowMulti(r, []int{dig}, []int{colXw1, colXw2, colXw3, colXw4})
-										if eraCnt > 0 {
+										if erased {
 											foundXWing = true
+
+											if !foundList.ContainsXwing(arr) {
+												if debug {
+													color.LightRed.Println("Not contains x-wing")
+													//foundList.PrintResult("X-wing")
+												}
+
+												foundList.AddRNode(arr)
+											}
 										}
 
 										if debug {
@@ -320,7 +341,7 @@ func checkSameColXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 											// the entire row since we know the digit can only appear in the
 											// third missing row of the third block, because the first 2 blocks
 											// already contain a pair of the digits each, forming the X-wing.
-											matched, cnt := rule1a(thirdRow, c)
+											matched, cnt, _ := rule1a(thirdRow, c)
 
 											if debug && cnt > 0 {
 												color.LightYellow.Printf("Rule1a: Found %d counts of open single %d at [%d,%d]\n",
@@ -331,7 +352,7 @@ func checkSameColXwing(debug bool, bi, bj, dig int, arrC []Coord, inBlk bool, fo
 
 										// check for hidden singles at this Cell position
 										if mat2[thirdRow][c] != nil {
-											matched3, cnt3 := rule3a(thirdRow, c, dig)
+											matched3, cnt3, _ := rule3a(thirdRow, c, dig)
 
 											if debug && cnt3 > 0 {
 												color.LightYellow.Printf("Rule3a: Found %d counts of hidden single %d at [%d,%d]\n",
@@ -373,7 +394,7 @@ func checkBlkForDigit(m Pmat, bx, by, dig, occurence int) ([]Coord, bool) {
 	if count == occurence {
 		return arr, true
 	}
-	return arr, false
+	return nil, false
 }
 
 func checkRowForDigit(m Pmat, row, dig, occurence int) ([]Coord, bool) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/mjwong/sudoku2/lib"
 	. "github.com/mjwong/sudoku2/linkedlist"
@@ -9,13 +10,15 @@ import (
 	"gopkg.in/gookit/color.v1"
 )
 
-func rule1() (*Matchlist, int) {
+func rule1() (*Matchlist, int, time.Duration) {
 	var (
 		col, row                     int // position of last empty cell
 		digit, count                 int
+		start                        time.Time
 		notInRow, notInCol, notInBlk bool
 		matched                      *Matchlist
 	)
+	start = time.Now()
 	matched = &Matchlist{}
 
 	currNode := emptyL.Head
@@ -48,18 +51,20 @@ func rule1() (*Matchlist, int) {
 			currNode = currNode.Next
 		}
 	}
-	return matched, count
+	return matched, count, time.Since(start)
 }
 
 // Rule 1a	Open singles
 //          Search the specified row or column for open singles
-func rule1a(row, col int) (*Matchlist, int) {
+func rule1a(row, col int) (*Matchlist, int, time.Duration) {
 	var (
 		digit, count                 int
 		notInRow, notInCol, notInBlk bool
+		start                        time.Time
 		node                         *Cell
 		matched                      *Matchlist
 	)
+	start = time.Now()
 	matched = &Matchlist{}
 
 	if *debugPtr {
@@ -70,7 +75,7 @@ func rule1a(row, col int) (*Matchlist, int) {
 		for c := 0; c < N; c++ {
 			if len(mat2[row][c]) == 1 {
 				digit = mat2[row][c][0]
-				node = emptyL.GetNodeForCell(row, c)
+				node = emptyL.GetNodeFoRCell(row, c)
 				matched.AddCell(node, digit)
 				emptyL.DelNode(node) // remove current Node from possibility list
 				mat[row][c] = digit
@@ -92,7 +97,7 @@ func rule1a(row, col int) (*Matchlist, int) {
 		for r := 0; r < N; r++ {
 			if len(mat2[r][col]) == 1 {
 				digit = mat2[r][col][0]
-				node = emptyL.GetNodeForCell(r, col)
+				node = emptyL.GetNodeFoRCell(r, col)
 				matched.AddCell(node, digit)
 				emptyL.DelNode(node) // remove current Node from possibility list
 				mat[r][col] = digit
@@ -113,7 +118,7 @@ func rule1a(row, col int) (*Matchlist, int) {
 	if row >= 0 && col >= 0 { // check only this cell
 		if len(mat2[row][col]) == 1 {
 			digit = mat2[row][col][0]
-			node = emptyL.GetNodeForCell(row, col)
+			node = emptyL.GetNodeFoRCell(row, col)
 			matched.AddCell(node, digit)
 			emptyL.DelNode(node) // remove current Node from possibility list
 			mat[row][col] = digit
@@ -130,7 +135,7 @@ func rule1a(row, col int) (*Matchlist, int) {
 		}
 	}
 
-	return matched, count
+	return matched, count, time.Since(start)
 }
 
 // *******************************************************************************

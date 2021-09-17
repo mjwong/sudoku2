@@ -208,27 +208,29 @@ func ruleTest(t *testing.T, input string, rule, empCnt, numFound int) {
 	switch rule {
 	case 3:
 		desc = RuleTable[3]
-		matched, cnt := rule3()
+		matched, cnt, elapsed := rule3()
 		digcnt := matched.CountNodes()
 
 		PrintPossibleMat(mat2)
 
-		color.LightMagenta.Printf("Found: %d digits.\n", cnt)
+		color.LightMagenta.Printf("Found: %d digits. Elapsed time = %v ms\n", cnt, elapsed.Milliseconds())
 		if digcnt != cnt {
 			t.Fatalf("Expected no. of digits found is %d but got %d", cnt, digcnt)
 		}
 		matched.PrintResult(desc)
 		count = cnt
+
 	case 5:
 		desc = RuleTable[5]
-		matched, cnt := rule5()
-		fmt.Printf("Found: %s = %d.\n", desc, cnt)
+		matched, cnt, elapsed := rule5()
+		fmt.Printf("Found: %s = %d. Elapsed time = %v ms\n", desc, cnt, elapsed.Milliseconds())
 		matched.PrintResult(desc)
 		count = cnt
+
 	case 8:
 		desc = RuleTable[8]
-		matched, cnt := rule3()
-		fmt.Printf("Found: %s = %d.\n", desc, cnt)
+		matched, cnt, elapsed := rule8()
+		fmt.Printf("Found: %s = %d. Elapsed time = %v ms\n", desc, cnt, elapsed.Milliseconds())
 		matched.PrintResult(desc)
 	}
 

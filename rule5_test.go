@@ -148,7 +148,7 @@ func TestContainsPair(t *testing.T) {
 
 // Rule 5: Naked Pairs
 func TestRule5(t *testing.T) {
-	// mid-way through difficiult3
+	// mid-way through difficiult3¯
 	input := "142.73...597.462.3863.52...31852469772639.4.545976.32.6.54391.293128....2.461..39"
 
 	ruleTest(t, input, 5, 23, 10)

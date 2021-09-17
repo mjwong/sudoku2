@@ -12,7 +12,7 @@ func TestRule1(t *testing.T) {
 	input := ".341528699.837645252.948371245.136986895.413737168.524857231.464938672.516249578."
 	PrepPmat(input)
 
-	matched, cnt := rule1()
+	matched, cnt, _ := rule1()
 	if cnt != 9 {
 		t.Fatalf("Expected 8 but got %d\n", cnt)
 	}

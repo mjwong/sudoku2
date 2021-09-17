@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/mjwong/sudoku2/lib"
 	. "github.com/mjwong/sudoku2/linkedlist"
@@ -12,12 +13,14 @@ import (
 // Rule 3	Hidden singles
 //          A digit that is the only one in an entire row, column, or block.
 //          Fill in this digiti and erase any other occurrence of this digit in the same row, column or block.
-func rule3() (*Matchlist, int) {
+func rule3() (*Matchlist, int, time.Duration) {
 	var (
 		count, itercnt           int
 		foundHiddenSingle, debug bool
+		start                    time.Time
 		matched                  *Matchlist
 	)
+	start = time.Now()
 	debug = DebugFn(2)
 	matched = &Matchlist{}
 
@@ -68,21 +71,23 @@ func rule3() (*Matchlist, int) {
 		}
 	}
 
-	return matched, count
+	return matched, count, time.Since(start)
 }
 
 // Rule 3a	Hidden singles
 //			Search in the specified row or col or blk intersecting this Cell only
-func rule3a(row, col, dig int) (*Matchlist, int) {
+func rule3a(row, col, dig int) (*Matchlist, int, time.Duration) {
 	var (
 		count                    int
 		foundHiddenSingle, debug bool
+		start                    time.Time
 		currNode                 *Cell
 		matched                  *Matchlist
 	)
+	start = time.Now()
 	debug = DebugFn(1)
 	matched = &Matchlist{}
-	currNode = emptyL.GetNodeForCell(row, col)
+	currNode = emptyL.GetNodeFoRCell(row, col)
 
 	if Contains(currNode.Vals, dig) {
 		foundHiddenSingle = findDigitAndUpdate(currNode, dig)
@@ -98,7 +103,7 @@ func rule3a(row, col, dig int) (*Matchlist, int) {
 		}
 	}
 
-	return matched, count
+	return matched, count, time.Since(start)
 }
 
 func findDigitAndUpdate(currNode *Cell, dig int) bool {

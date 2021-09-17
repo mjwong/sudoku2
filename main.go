@@ -14,7 +14,7 @@ import (
 )
 
 type (
-	fnRule func() (*Matchlist, int)
+	fnRule func() (*Matchlist, int, time.Duration)
 )
 
 const (
@@ -117,31 +117,36 @@ func main() {
 			CheckSums(mat)
 		}
 	case 20:
-		matched20, cnt20 := rule20()
+		matched20, cnt20, elapsed := rule20()
 		matched20.PrintResult(RuleTable[20])
-		fmt.Printf("Rule 20: Found %2d %ss\n", cnt20, RuleTable[20])
+		fmt.Printf("Rule 20: Found %2d %ss. Elapsed time = %v ms\n", cnt20, RuleTable[20], elapsed.Milliseconds())
 	case 99: // run everything including iterMat
 		ruleCnt := map[int]int{}
 		loop := 0
 
 		for {
-			matched1, cnt1 := rule1()
-			fmt.Printf("After rule1, found %2d. Empty list count = %2d.\n", cnt1, emptyL.CountNodes())
+			matched1, cnt1, elapsed1 := rule1()
+			fmt.Printf("After rule1,  found %2d. Empty list count = %2d. Elapsed time = %v us\n",
+				cnt1, emptyL.CountNodes(), elapsed1.Microseconds())
 			matched1.PrintResult("Found open single")
 
-			matched3, cnt3 := rule3()
-			fmt.Printf("After rule3, found %2d. Empty list count = %2d.\n", cnt3, emptyL.CountNodes())
+			matched3, cnt3, elapsed3 := rule3()
+			fmt.Printf("After rule3,  found %2d. Empty list count = %2d. Elapsed time = %v us\n",
+				cnt3, emptyL.CountNodes(), elapsed3.Microseconds())
 			matched3.PrintResult("Found hidden single")
 
 			cntBefore5 := emptyL.CountElem()
-			matched5, cnt5 := rule5()
+			matched5, cnt5, elapsed5 := rule5()
 			cntAfter5 := emptyL.CountElem()
+			fmt.Printf("After rule5,  found %2d. Empty list count = %2d. Elapsed time = %v us\n",
+				cnt5, emptyL.CountNodes(), elapsed5.Microseconds())
 
 			cntBefore20 := emptyL.CountElem()
-			matched20, cnt20 := rule20()
+			matched20, cnt20, elapsed20 := rule20()
 			cntAfter20 := emptyL.CountElem()
 
-			fmt.Printf("After rule20, found %2d. Empty list count = %2d.\n", cnt5, emptyL.CountNodes())
+			fmt.Printf("After rule20, found %2d. Empty list count = %2d. Elapsed time = %v us\n",
+				cnt20, emptyL.CountNodes(), elapsed20.Microseconds())
 
 			if cnt1 <= 0 && cnt3 <= 0 && cntBefore5 == cntAfter5 && cntBefore20 == cntAfter20 {
 				if loop == 2 {
@@ -158,6 +163,7 @@ func main() {
 			if cntBefore20 != cntAfter20 {
 				ruleCnt[20] += cnt20
 				matched20.PrintResult("Found X-wing")
+				color.LightRed.Printf("List count of X-wings: %d\n", matched20.CountNodes())
 			}
 		}
 
@@ -186,16 +192,23 @@ func main() {
 }
 
 func RuleLoop(rule fnRule, desc string, exitCond int) int {
+	var (
+		totalCnt  int
+		totalTime time.Duration
+	)
 	exitFor := false
-	totalcnt := 0
+
 	fnName := GetFunctionName(rule)
 	for {
 		cntBefore := emptyL.CountNodes()
-		matched, cnt := rule()
+		matched, cnt, elapsed := rule()
+		totalTime += elapsed
 		cntAfter := emptyL.CountNodes()
 		fmt.Printf("%s: Found %d digits.\n", fnName, cnt)
 		matched.PrintResult(desc)
-		PrintSudoku(mat)
+		if *verbose {
+			PrintSudoku(mat)
+		}
 		switch exitCond {
 		case Zero:
 			if cnt <= 0 {
@@ -211,14 +224,16 @@ func RuleLoop(rule fnRule, desc string, exitCond int) int {
 			}
 		}
 
-		totalcnt += cnt
+		totalCnt += cnt
 		if exitFor {
 			break
 		}
 	}
-	fmt.Printf("%s: Total found = %d.\n", fnName, totalcnt)
-	PrintPossibleMat(mat2)
-	return totalcnt
+	fmt.Printf("%s: Total found = %d. Total elapsed time = %v\n", fnName, totalCnt, totalTime)
+	if *verbose {
+		PrintPossibleMat(mat2)
+	}
+	return totalCnt
 }
 
 func PrintFound(ruleList []int, ruleCounts map[int]int) {
@@ -246,21 +261,21 @@ func PrepPmat(input string) {
 	emptyL, mat2 = GetPossibleMat(mat)
 }
 
-func iterMat(currCell *Cell) {
+func iterMat(curRCell *Cell) {
 
 	if emptyCnt > 0 {
 		iterCnt++
 
-		for _, num := range currCell.Vals {
+		for _, num := range curRCell.Vals {
 			if emptyCnt > 0 {
-				if IsSafe(mat3, currCell.Row, currCell.Col, num) {
-					mat3[currCell.Row][currCell.Col] = num
+				if IsSafe(mat3, curRCell.Row, curRCell.Col, num) {
+					mat3[curRCell.Row][curRCell.Col] = num
 					emptyCnt--
 
 					if emptyCnt > 0 {
-						iterMat(currCell.Next)
+						iterMat(curRCell.Next)
 						if emptyCnt > 0 {
-							mat3[currCell.Row][currCell.Col] = 0
+							mat3[curRCell.Row][curRCell.Col] = 0
 							emptyCnt++
 						}
 					} else {

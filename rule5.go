@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/mjwong/sudoku2/lib"
 	. "github.com/mjwong/sudoku2/linkedlist"
@@ -12,16 +13,19 @@ import (
 // Rule 5	Naked pairs
 //          A pair of digits that occurs in exactly 2 cells in an entire row, column, or block.
 //          Erase any other occurrence of these 2 digits elsewhere in the same row, column or block.
-func rule5() (*Matchlist, int) {
+func rule5() (*Matchlist, int, time.Duration) {
 	var (
 		col, row, col2, row2   int // position of last empty cell
 		count                  int
 		twoElem                []int
 		foundNakedPairs, debug bool
 		inRow, inCol, inBlk    bool
+		start                  time.Time
 		secondNode             *Cell
 		matched                *Matchlist
 	)
+
+	start = time.Now()
 	matched = &Matchlist{}
 	debug = DebugFn(2)
 	foundNakedPairs = true
@@ -54,9 +58,9 @@ func rule5() (*Matchlist, int) {
 								color.Magenta.Printf("Found naked pair in row %d, in cols %d and %d.\n", row, col, col2)
 							}
 
-							secondNode = emptyL.GetNodeForCell(row, col2)
+							secondNode = emptyL.GetNodeFoRCell(row, col2)
 
-							arr := AddIdx(nil, currNode, secondNode)
+							arr := AddRCell(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
 								if debug {
@@ -91,9 +95,9 @@ func rule5() (*Matchlist, int) {
 								color.Magenta.Printf("Found naked pair in col %d, in rows %d and %d.\n", col, row, row2)
 							}
 
-							secondNode = emptyL.GetNodeForCell(row2, col)
+							secondNode = emptyL.GetNodeFoRCell(row2, col)
 
-							arr := AddIdx(nil, currNode, secondNode)
+							arr := AddRCell(nil, currNode, secondNode)
 
 							if !matched.ContainsPair(arr) {
 								if debug {
@@ -143,8 +147,8 @@ func rule5() (*Matchlist, int) {
 										twoElem[0], twoElem[1], row/SQ, col/SQ, row, col, row2, col2)
 								}
 
-								secondNode = emptyL.GetNodeForCell(row2, col2)
-								arr := AddIdx(nil, currNode, secondNode)
+								secondNode = emptyL.GetNodeFoRCell(row2, col2)
+								arr := AddRCell(nil, currNode, secondNode)
 
 								if debug {
 									matched.PrintResult("Naked pairs")
@@ -189,5 +193,5 @@ func rule5() (*Matchlist, int) {
 		}
 	}
 
-	return matched, count
+	return matched, count, time.Since(start)
 }

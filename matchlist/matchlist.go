@@ -5,16 +5,17 @@ import (
 	"log"
 
 	"github.com/gookit/color"
+	. "github.com/mjwong/sudoku2/lib"
 	. "github.com/mjwong/sudoku2/linkedlist"
 )
 
-type Idx struct {
+type RCell struct {
 	Row, Col int
 	Vals     []int
 }
 
 type rNode struct {
-	Arr  []Idx
+	Arr  []RCell
 	Prev *rNode
 	Next *rNode
 }
@@ -27,7 +28,7 @@ type Matchlist struct {
 
 func (p *Matchlist) AddCell(node *Cell, dig int) error {
 	r := &rNode{
-		Arr: []Idx{
+		Arr: []RCell{
 			{
 				Row:  node.Row,
 				Col:  node.Col,
@@ -51,9 +52,9 @@ func (p *Matchlist) AddCell(node *Cell, dig int) error {
 	return nil
 }
 
-func (p *Matchlist) AddRNode(arrIdx []Idx) error {
+func (p *Matchlist) AddRNode(arrRCell []RCell) error {
 	r := &rNode{
-		Arr: arrIdx,
+		Arr: arrRCell,
 	}
 
 	if p.Head == nil {
@@ -81,10 +82,10 @@ func (p *Matchlist) CountNodes() int {
 	return count
 }
 
-func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
+func (p *Matchlist) ContainsPair(arrRCell []RCell) bool {
 	cNode := p.Head
 
-	if len(arrIdx) != 2 {
+	if len(arrRCell) != 2 {
 		log.Fatal("New naked pair found does not contain a pair of cell indices")
 	}
 
@@ -92,10 +93,10 @@ func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
 		if len(cNode.Arr) != 2 {
 			log.Fatal("Matchlist does not contain a pair of cell indices")
 		}
-		if ((arrIdx[0].Row == cNode.Arr[0].Row && arrIdx[0].Col == cNode.Arr[0].Col) ||
-			(arrIdx[0].Row == cNode.Arr[1].Row && arrIdx[0].Col == cNode.Arr[1].Col)) &&
-			((arrIdx[1].Row == cNode.Arr[0].Row && arrIdx[1].Col == cNode.Arr[0].Col) ||
-				(arrIdx[1].Row == cNode.Arr[1].Row && arrIdx[1].Col == cNode.Arr[1].Col)) {
+		if ((arrRCell[0].Row == cNode.Arr[0].Row && arrRCell[0].Col == cNode.Arr[0].Col) ||
+			(arrRCell[0].Row == cNode.Arr[1].Row && arrRCell[0].Col == cNode.Arr[1].Col)) &&
+			((arrRCell[1].Row == cNode.Arr[0].Row && arrRCell[1].Col == cNode.Arr[0].Col) ||
+				(arrRCell[1].Row == cNode.Arr[1].Row && arrRCell[1].Col == cNode.Arr[1].Col)) {
 			return true
 		}
 		cNode = cNode.Next
@@ -104,26 +105,39 @@ func (p *Matchlist) ContainsPair(arrIdx []Idx) bool {
 	return false
 }
 
-func (p *Matchlist) ContainsXwing(arrIdx []Idx) bool {
+func (p *Matchlist) ContainsXwing(arrRCell []RCell) bool {
 	cNode := p.Head
 
-	if len(arrIdx) != 4 {
+	if len(arrRCell) != 4 {
 		log.Fatal("Does not contain 4 cells of the X-wing")
 	}
 
 	for cNode != nil {
-		count := 0
-		for _, v := range cNode.Arr {
-			for _, w := range arrIdx {
-				if v.Row == w.Row && v.Col == w.Col {
-					count++
-				}
-			}
-		}
-		if count == 4 {
+		if RCellArrayEquals(cNode.Arr, arrRCell) {
 			return true
 		}
 		cNode = cNode.Next
+	}
+	return false
+}
+
+func RCellArrayEquals(a []RCell, b []RCell) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for _, v := range b {
+		if ContainsRCell(a, v) {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsRCell(a []RCell, b RCell) bool {
+	for _, v := range a {
+		if v.Row == b.Row && v.Col == b.Col && IntArrayEquals(v.Vals, b.Vals) {
+			return true
+		}
 	}
 	return false
 }
@@ -148,19 +162,45 @@ func (p *Matchlist) PrintResult(desc string) {
 }
 
 // accepts a variable no. of cells
-func AddIdx(arr []Idx, a ...*Cell) []Idx {
+func AddRCell(arr []RCell, a ...*Cell) []RCell {
 	for _, val := range a {
-		newIdx := Idx{
+		newRCell := RCell{
 			Row:  val.Row,
 			Col:  val.Col,
 			Vals: val.Vals,
 		}
 
 		if arr == nil {
-			arr = []Idx{}
+			arr = []RCell{}
 		}
-		arr = append(arr, newIdx)
+		arr = append(arr, newRCell)
 	}
 
 	return arr
+}
+
+func AddRCellToArr(arr []RCell, row, col, dig int) []RCell {
+	newRCell := RCell{
+		Row:  row,
+		Col:  col,
+		Vals: []int{dig},
+	}
+
+	if arr == nil {
+		arr = []RCell{}
+	}
+	arr = append(arr, newRCell)
+
+	return arr
+}
+
+func AppendMatchlist(matched, found *Matchlist) *Matchlist {
+
+	rnode := found.Head
+	for rnode != nil {
+		matched.AddRNode(rnode.Arr)
+		rnode = rnode.Next
+	}
+
+	return matched
 }
